@@ -1,0 +1,248 @@
+{
+ "income": {
+  "section": "Part I Item 1 \u2014 Income Statements",
+  "quote": " (in millions, except per share amounts) (unaudited) three months endedmarch 31, nine months endedmarch 31, 2026 2025 2026 2025 revenue: product $ 15,089 $ 15,319 $ 47,462 $ 46,810 service and other 67,797 54,747 194,370 158,473 total revenue 82,886 70,066 241,832 205,283 cost of revenue: product 2,733 3,037 9,160 10,187 service and other 24,095 18,882 67,689 53,630 total cost of revenue 26,828 21,919 76,849 63,817 gross margin 56,058 48,147 164,983 141,466 research and development 8,915 8,198 25,565 23,659 sales and marketing 6,814 6,212 19,115 18,369 general and administrative 1,931 1,737 5,669 5,233 operating income 38,398 32,000 114,634 94,205 other income (expense), net 942 (623 ) 7,253 (3,194 ) income before income taxes 39,340 31,377 121,887 91,011 provision for income taxes 7,562 5,553 23,904 16,412 net income $ 31,778 $ 25,824 $ 97,983 $ 74,599 earnings per share: basic $ 4.28 $ 3.47 $ 13.19 $ 10.03 diluted $ 4.27 $ 3.46 $ 13.14 $ 9.99 weighted average shares outstanding: basic 7,426 7,434 7,430 7,434 diluted 7,445 7,461 7,457 7,466 ",
+  "contains": [
+   "194,370"
+  ],
+  "match_chunks": [
+   "480deddf-8672-4be2-9852-3e1f9bab09eb"
+  ],
+  "best_overlap": 56,
+  "n_cands": 75
+ },
+ "balance": {
+  "section": "Part I Item 1 \u2014 Balance Sheets",
+  "quote": " (in millions) (unaudited) march 31,2026 june 30,2025 assets current assets: cash and cash equivalents $ 32,105 $ 30,242 short-term investments 46,167 64,323 total cash, cash equivalents, and short-term investments 78,272 94,565 accounts receivable, net of allowance for doubtful accounts of $794 and $944 60,041 69,905 inventories 1,219 938 other current assets 35,797 25,723 total current assets 175,329 191,131 property and equipment, net of accumulated depreciation of $111,723 and $93,653 283,228 204,966 operating lease right-of-use assets 24,403 24,823 equity and other investments 33,683 15,405 goodwill 119,661 119,509 intangible assets, net 19,325 22,604 other long-term assets 38,599 40,565 total assets $ 694,228 $ 619,003 liabilities and stockholders\u2019 equity current liabilities: accounts payable $ 37,513 $ 27,724 current portion of long-term debt 8,839 2,999 accrued compensation 11,270 13,709 short-term income taxes 3,563 7,211 short-term unearned revenue 50,924 64,555 other current liabilities 24,552 25,020 total current liabilities 136,661 141,218 long-term debt 31,423 40,152 long-term income taxes 27,941 25,986 long-term unearned revenue 2,753 2,710 deferred income taxes 2,899 2,835 operating lease liabilities 16,703 17,437 other long-term liabilities 61,481 45,186 total liabilities 279,861 275,524 commitments and contingencies stockholders\u2019 equity: common stock and paid-in capital \u2013 shares authorized 24,000; outstanding 7,429 and 7,434 115,069 109,095 retained earnings 302,526 237,731 accumulated other comprehensive loss (3,228 ) (3,347 ) total stockholders\u2019 equity 414,367 343,479 total liabilities and stockholders\u2019 equity $ 694,228 $ 619,003 ",
+  "contains": [
+   "authorized 24,000; outstanding 7,429"
+  ],
+  "match_chunks": [
+   "eefbe22c-3452-4b0c-a0f5-881345fb0f1e"
+  ],
+  "best_overlap": 50,
+  "n_cands": 86
+ },
+ "cashflow": {
+  "section": "Part I Item 1 \u2014 Cash Flows Statements",
+  "quote": " (in millions) (unaudited) three months endedmarch 31, nine months endedmarch 31, 2026 2025 2026 2025 operations net income $ 31,778 $ 25,824 $ 97,983 $ 74,599 adjustments to reconcile net income to net cash from operations: depreciation, amortization, and other 10,167 7,734 27,512 20,116 stock-based compensation expense 3,081 2,980 9,283 8,901 net recognized losses (gains) on investments and derivatives (1,280 ) 708 (7,304 ) 3,387 deferred income taxes 2,602 (2,244 ) 9,539 (4,835 ) changes in operating assets and liabilities: accounts receivable (4,707 ) (2,461 ) 8,347 5,598 inventories (161 ) 52 (283 ) 390 other current assets 758 1,076 215 642 other long-term assets (932 ) (518 ) (2,614 ) (3,368 ) accounts payable 2,320 1,179 2,903 1,221 unearned revenue (166 ) (1,032 ) (13,067 ) (12,923 ) income taxes 2,296 1,298 (1,568 ) (1,081 ) other current liabilities 2,539 2,839 (166 ) 576 other long-term liabilities (1,616 ) (391 ) (3,286 ) 292 net cash from operations 46,679 37,044 127,494 93,515 financing repayments of debt, maturities of 90 days or less 0 0 0 (5,746 ) repayments of debt 0 (2,250 ) (3,000 ) (3,216 ) common stock issued 541 546 1,489 1,508 common stock repurchased (4,627 ) (4,781 ) (17,692 ) (13,874 ) common stock cash dividends paid (6,756 ) (6,169 ) (19,687 ) (17,913 ) other, net (509 ) (382 ) (1,877 ) (1,614 ) net cash used in financing (11,351 ) (13,036 ) (40,767 ) (40,855 ) investing additions to property and equipment (30,876 ) (16,745 ) (80,146 ) (47,472 ) acquisition of companies, net of cash acquired and divestitures, and purchases of intangible and other assets (258 ) (981 ) (1,291 ) (4,235 ) purchases of investments (12,006 ) (4,474 ) (39,522 ) (8,144 ) maturities of investments 11,976 6,721 30,424 11,461 sales of investments 6,358 2,161 15,311 6,688 other, net (2,599 ) 604 (9,445 ) (325 ) net cash used in investing (27,405 ) (12,714 ) (84,669 ) (42,027 ) effect of foreign exchange rates on cash and cash equivalents (114 ) 52 (195 ) (120 ) net change in cash and cash equivalents 7,809 11,346 1,863 10,513 cash and cash equivalents, beginning of period 24,296 17,482 30,242 18,315 cash and cash equivalents, end of period $ 32,105 $ 28,828 $ 32,105 $ 28,828 ",
+  "contains": [
+   "repayments of debt, maturities"
+  ],
+  "match_chunks": [
+   "5a51a547-2066-4af3-b9a3-82719b285bb7"
+  ],
+  "best_overlap": 53,
+  "n_cands": 123
+ },
+ "segments": {
+  "section": "Note 16 \u2014 Segment Information and Geographic Data",
+  "quote": " (in millions) three months ended march 31, nine months ended march 31, 2026 2025 2026 2025 productivity and business processes revenue $ 35,013 $ 29,944 $ 102,149 $ 87,698 cost of revenue 6,197 5,517 18,028 16,380 operating expenses 7,843 7,048 22,142 20,538 operating income $ 20,973 $ 17,379 $ 61,979 $ 50,780 intelligent cloud revenue $ 34,681 $ 26,751 $ 98,485 $ 76,387 cost of revenue 15,120 10,307 41,000 28,326 operating expenses 5,808 5,349 16,468 15,612 operating income $ 13,753 $ 11,095 $ 41,017 $ 32,449 more personal computing revenue $ 13,192 $ 13,371 $ 41,198 $ 41,198 cost of revenue 5,511 6,095 17,821 19,111 operating expenses 4,009 3,750 11,739 11,111 operating income $ 3,672 $ 3,526 $ 11,638 $ 10,976 total revenue $ 82,886 $ 70,066 $ 241,832 $ 205,283 cost of revenue 26,828 21,919 76,849 63,817 operating expenses 17,660 16,147 50,349 47,261 operating income $ 38,398 $ 32,000 $ 114,634 $ 94,205 ",
+  "contains": [
+   "15,120",
+   "10,307",
+   "41,000"
+  ],
+  "match_chunks": [
+   "35f1107a-47a1-482a-a87f-b05b767730d4",
+   "a1f5ce99-2590-43ed-91bd-d078e709839b"
+  ],
+  "best_overlap": 49,
+  "n_cands": 67
+ },
+ "segment_definitions": {
+  "section": "Note 16 \u2014 Segment definitions and allocation policies",
+  "quote": " our reportable segments are described below.productivity and business processesour productivity and business processes segment consists of products and services in our portfolio of productivity, communication, and information services, spanning a variety of devices and platforms. this segment primarily comprises:\u2022microsoft 365 commercial products and cloud services, including microsoft 365 commercial cloud, comprising microsoft 365 commercial, enterprise mobility + security, the cloud portion of windows commercial, the per-user portion of power bi, exchange, sharepoint, microsoft teams, microsoft 365 security and compliance, and microsoft 365 copilot; and microsoft 365 commercial products, comprising windows commercial on-premises and office licensed on-premises. \u2022microsoft 365 consumer products and cloud services, including microsoft 365 consumer subscriptions, office licensed on-premises, and other consumer services.\u2022linkedin, including talent solutions, marketing solutions, premium subscriptions, and sales solutions.\u2022dynamics products and cloud services, including dynamics 365, comprising a set of intelligent, cloud-based applications across erp, crm, power apps, and power automate; and on-premises erp and crm applications.intelligent cloudour intelligent cloud segment consists of our public, private, and hybrid server products and cloud services that power modern business and developers. this segment primarily comprises:\u2022server products and cloud services, including azure and other cloud services, comprising cloud and ai consumption-based services, github cloud services, nuance healthcare cloud services, virtual desktop offerings, and other cloud services; and server products, comprising sql server, windows server, visual studio, system center, related client access licenses, and other on-premises offerings.\u2022enterprise and partner services, including enterprise support services, industry solutions, nuance professional services, microsoft partner network, and learning experience.more personal computingour more personal computing segment consists of products and services that put customers at the center of the experience with our technology. this segment primarily comprises:\u2022windows and devices, including windows oem licensing (windows pro and non-pro licenses sold through the oem channel) and devices, comprising surface and pc accessories.\u2022gaming, including xbox hardware and xbox content and services, comprising first- and third-party content (including games and in-game content), xbox game pass and other subscriptions, xbox cloud gaming, advertising, and other cloud services.\u2022search advertising (formerly search and news advertising), comprising bing, copilot, microsoft news, microsoft edge, and third-party affiliates.revenue and costs are generally directly attributed to our segments. however, due to the integrated structure of our business, certain revenue recognized and costs incurred by one segment may benefit other segments. revenue from certain contracts is allocated among the segments based on the relative value of the underlying products and services, which can include allocation based on actual prices charged, prices when sold separately, or estimated costs plus a profit margin. cost of revenue is allocated in certain cases based on a relative revenue methodology. operating expenses that are allocated primarily include those relating to our investments in ai infrastructure and training, as well as marketing of products and services, from which multiple segments benefit and are generally allocated based on relative gross margin. ",
+  "contains": [
+   "industry solutions, nuance professional"
+  ],
+  "match_chunks": [
+   "20f8ddf9-9481-428e-ab3e-82742a7ab867"
+  ],
+  "best_overlap": 70,
+  "n_cands": 191
+ },
+ "quarter_overview": {
+  "section": "Part I Item 2 \u2014 Results of Operations: quarter and nine months",
+  "quote": " adjusted net income and adjusted diluted earnings per share (\u201ceps\u201d) are non-gaap financial measures. these non-gaap financial measures exclude net gains and losses from investments in openai. refer to the non-gaap financial measures section below for a reconciliation of our financial results reported in accordance with gaap to non-gaap financial results.three months ended march 31, 2026 compared with three months ended march 31, 2025revenue increased $12.8 billion or 18% driven by growth in microsoft cloud. intelligent cloud revenue increased driven by azure. productivity and business processes revenue increased driven by microsoft 365 commercial cloud. more personal computing revenue decreased with lower hardware sales across devices and gaming, offset in part by growth in search advertising.cost of revenue increased $4.9 billion or 22% driven by growth in microsoft cloud.gross margin increased $7.9 billion or 16% with growth across each of our segments.\u2022gross margin percentage decreased driven by continued investments in ai infrastructure and growing ai product usage, offset in part by efficiency gains across the microsoft cloud.\u2022microsoft cloud gross margin percentage decreased to 66% driven by continued investments in ai infrastructure and growing ai product usage, offset in part by efficiency gains in azure and microsoft 365 commercial cloud.operating expenses increased $1.5 billion or 9% primarily driven by continued investments in research and development compute capacity, ai talent, and data to support product development across the portfolio. total company headcount declined year-over-year.operating income increased $6.4 billion or 20% driven by growth in productivity and business processes and intelligent cloud.revenue, gross margin, and operating income included a favorable foreign currency impact of 3%, 3%, and 4%, respectively. cost of revenue included an unfavorable foreign currency impact of 2%.current year net income and diluted eps were negatively impacted by net losses from investments in openai, which resulted in a decrease in net income of $14 million. prior year net income and diluted eps were negatively impacted by net losses from investments in openai, which resulted in a decrease in net income and diluted eps of $583 million and $0.08, respectively.nine months ended march 31, 2026 compared with nine months ended march 31, 2025revenue increased $36.5 billion or 18% driven by growth in microsoft cloud. intelligent cloud revenue increased driven by azure. productivity and business processes revenue increased driven by microsoft 365 commercial cloud. more personal computing revenue was relatively unchanged with growth in search advertising offset by a decline in gaming.cost of revenue increased $13.0 billion or 20% driven by growth in microsoft cloud.gross margin increased $23.5 billion or 17% with growth across each of our segments.\u2022gross margin percentage decreased slightly primarily driven by continued investments in ai infrastructure and growing ai product usage, offset in part by efficiency gains across the microsoft cloud.\u2022microsoft cloud gross margin percentage decreased to 67% driven by continued investments in ai infrastructure and growing ai product usage, offset in part by efficiency gains in azure and microsoft 365 commercial cloud.operating expenses increased $3.1 billion or 7% driven by continued investments in research and development compute capacity, ai talent, and data to support product development across the portfolio, impairment and other related expenses in our gaming business, and higher copilot advertising expenses. total company headcount declined year-over-year.operating income increased $20.4 billion or 22% driven by growth in productivity and business processes and intelligent cloud. ",
+  "contains": [
+   "development across the portfolio."
+  ],
+  "match_chunks": [
+   "744d2ea8-3b47-47ac-a59e-6d96559a5da6"
+  ],
+  "best_overlap": 140,
+  "n_cands": 225
+ },
+ "segment_quarter_a": {
+  "section": "Part I Item 2 \u2014 Quarterly PBP and Intelligent Cloud results",
+  "quote": " operating income increased $3.6 billion or 21%.\u2022cost of revenue increased $680 million or 12% driven by investments in ai infrastructure to support microsoft 365 copilot seat and usage growth.\u2022gross margin increased $4.4 billion or 18% driven by growth in microsoft 365 commercial cloud. gross margin percentage increased slightly driven by efficiency gains in microsoft 365 commercial cloud even with continued investments in ai infrastructure and growing ai product usage.\u2022operating expenses increased $795 million or 11% driven by continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio, as well as higher copilot advertising expenses.revenue, gross margin, and operating income included a favorable foreign currency impact of 4%, 5%, and 7%, respectively. operating expenses included an unfavorable foreign currency impact of 2%.intelligent cloudrevenue increased $7.9 billion or 30%.\u2022server products and cloud services revenue increased $7.8 billion or 32% driven by azure and other cloud services. azure and other cloud services revenue grew 40% driven by demand for services across the platform with continued growth across all workloads. server products revenue increased slightly, primarily driven by higher purchases of licenses running in multi-cloud environments, offset in part by renewals with lower in-period revenue recognition from the mix of contracts and continued customer shift to cloud.\u2022enterprise and partner services revenue increased $141 million or 7% driven by growth in enterprise support services.operating income increased $2.7 billion or 24%.\u2022cost of revenue increased $4.8 billion or 47% driven by investments in ai infrastructure to support growing customer demand and increased github copilot usage.\u2022gross margin increased $3.1 billion or 19% driven by growth in azure. gross margin percentage decreased driven by the continued investments in ai infrastructure, offset in part by efficiency gains in azure.\u2022operating expenses increased $459 million or 9% primarily driven by continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio.revenue included a favorable foreign currency impact of 2%. cost of revenue and operating expenses included an unfavorable foreign currency impact of 3% and 2%, respectively.more personal computingrevenue decreased $179 million or 1%.\u2022windows and devices revenue decreased $103 million or 2%. windows oem and devices revenue decreased 2% driven by a decline in devices, offset in part by growth in windows oem as oem partners continue to build inventory due to increasing memory pricing. ",
+  "contains": [
+   "7%, respectively. operating expenses"
+  ],
+  "match_chunks": [
+   "8385c617-9f65-4741-aaa0-a969af3a2d21"
+  ],
+  "best_overlap": 111,
+  "n_cands": 159
+ },
+ "segment_quarter_b": {
+  "section": "Part I Item 2 \u2014 Quarterly More Personal Computing and nine-month PBP results",
+  "quote": " \u2022gaming revenue decreased $380 million or 7% driven by declines in xbox content and services and xbox hardware. xbox content and services revenue decreased 5% on a prior year comparable that benefited from strong first-party content performance. xbox hardware revenue decreased 33% driven by lower volume of consoles sold.\u2022search advertising revenue increased $304 million or 9%. search advertising revenue excluding traffic acquisition costs increased 12% driven by higher search volume and revenue per search, as well as continued benefit from third-party partnerships.operating income increased $146 million or 4%.\u2022cost of revenue decreased $584 million or 10% primarily driven by lower hardware sales.\u2022gross margin increased $405 million or 6% driven by growth in search advertising and gaming. gross margin percentage increased driven by sales mix shift to higher margin businesses.\u2022operating expenses increased $259 million or 7% driven by impairment and other related expenses in our gaming business and continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio.revenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 2%, and 3%, respectively.nine months ended march 31, 2026 compared with nine months ended march 31, 2025productivity and business processesrevenue increased $14.5 billion or 16%.\u2022microsoft 365 commercial products and cloud services revenue increased $10.6 billion or 17%. microsoft 365 commercial cloud revenue grew 18% with growth in revenue per user driven by microsoft 365 e5 and microsoft 365 copilot, and continued microsoft 365 commercial seat growth. microsoft 365 commercial products revenue grew 10% driven by an increase in office 2024 transactional purchasing, as well as growth in the windows commercial on-premises components of microsoft 365 suite sales.\u2022microsoft 365 consumer products and cloud services revenue increased $1.4 billion or 27%. microsoft 365 consumer cloud revenue grew 29% driven by growth in revenue per user and continued growth in microsoft 365 consumer subscribers.\u2022linkedin revenue increased $1.4 billion or 11% with growth across all lines of business.\u2022dynamics products and cloud services revenue increased $941 million or 17% driven by growth in dynamics 365. dynamics 365 revenue grew 20% with growth across all workloads.operating income increased $11.2 billion or 22%.\u2022cost of revenue increased $1.6 billion or 10% driven by investments in ai infrastructure to support microsoft 365 copilot seat and usage growth.\u2022gross margin increased $12.8 billion or 18% driven by growth in microsoft 365 commercial cloud. gross margin percentage increased driven by efficiency gains in microsoft 365 commercial cloud even with continued investments in ai infrastructure and growing ai product usage.\u2022operating expenses increased $1.6 billion or 8% driven by continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio, as well as higher copilot advertising expenses.revenue, gross margin, and operating income included a favorable foreign currency impact of 2%, 3%, and 4%, respectively. ",
+  "contains": [
+   "first-party content performance. xbox"
+  ],
+  "match_chunks": [
+   "d255893b-1a4c-4a38-9fd3-85d5c0bdb6b6"
+  ],
+  "best_overlap": 92,
+  "n_cands": 185
+ },
+ "segment_nine": {
+  "section": "Part I Item 2 \u2014 Nine-month Intelligent Cloud and More Personal Computing results",
+  "quote": " intelligent cloudrevenue increased $22.1 billion or 29%.\u2022server products and cloud services revenue increased $21.8 billion or 31% driven by azure and other cloud services. azure and other cloud services revenue grew 40% driven by demand for services across the platform with continued growth across all workloads. server products revenue increased 1% primarily driven by higher purchases of licenses running in multi-cloud environments.\u2022enterprise and partner services revenue increased $381 million or 7% driven by growth in enterprise support services.operating income increased $8.6 billion or 26%.\u2022cost of revenue increased $12.7 billion or 45% driven by investments in ai infrastructure to support growing customer demand.\u2022gross margin increased $9.4 billion or 20% driven by growth in azure. gross margin percentage decreased driven by the continued investments in ai infrastructure, offset in part by efficiency gains in azure.\u2022operating expenses increased $856 million or 5% driven by continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio.cost of revenue included an unfavorable foreign currency impact of 2%.more personal computingrevenue was relatively unchanged.\u2022windows and devices revenue increased slightly. windows oem and devices revenue increased 2% driven by windows oem growth of 8% with inventory levels that remained elevated, offset in part by a decline in devices. \u2022gaming revenue decreased $1.1 billion or 6% driven by declines in xbox hardware and xbox content and services. xbox hardware revenue decreased 31% driven by lower volume of consoles sold. xbox content and services revenue decreased 3% on a prior year comparable that benefited from strong first-party content performance, offset in part by growth in xbox game pass.\u2022search advertising revenue increased $1.0 billion or 10%. search advertising revenue excluding traffic acquisition costs increased 13% driven by higher search volume and revenue per search, as well as continued benefit from third-party partnerships.operating income increased $662 million or 6%.\u2022cost of revenue decreased $1.3 billion or 7% driven by lower hardware sales, offset in part by growth in search advertising.\u2022gross margin increased $1.3 billion or 6% driven by growth in search advertising and windows oem. gross margin percentage increased driven by sales mix shift to higher margin businesses.\u2022operating expenses increased $628 million or 6% driven by impairment and other related expenses in our gaming business and continued investments in research and development compute capacity, ai talent, and data to support product development that benefits the entire portfolio.operating income included a favorable foreign currency impact of 2%. ",
+  "contains": [
+   "10%. search advertising revenue"
+  ],
+  "match_chunks": [
+   "246215ff-0a53-4c76-93cd-8d98f386006d"
+  ],
+  "best_overlap": 95,
+  "n_cands": 156
+ },
+ "opex": {
+  "section": "Part I Item 2 \u2014 Operating Expenses",
+  "quote": " operating expensesresearch and development (in millions, except percentages) three months endedmarch 31, percentagechange nine months endedmarch 31, percentagechange 2026 2025 2026 2025 research and development $ 8,915 $ 8,198 9% $ 25,565 $ 23,659 8% as a percent of revenue 11% 12% (1)ppt 11% 12% (1)ppt research and development expenses include payroll, employee benefits, stock-based compensation expense, and other headcount-related expenses associated with product development. research and development expenses also include technology development costs, including ai training and other infrastructure costs, third-party development and programming costs, and the amortization of purchased software code and services content.three months ended march 31, 2026 compared with three months ended march 31, 2025research and development expenses increased $717 million or 9% driven by continued investments in compute capacity, ai talent, and data to support product development across the portfolio, with headcount declining year-over-year.nine months ended march 31, 2026 compared with nine months ended march 31, 2025research and development expenses increased $1.9 billion or 8% driven by continued investments in compute capacity, ai talent, and data to support product development across the portfolio, as well as impairment and other related expenses in our gaming business, with headcount declining year-over-year.sales and marketing (in millions, except percentages) three months endedmarch 31, percentagechange nine months endedmarch 31, percentagechange 2026 2025 2026 2025 sales and marketing $ 6,814 $ 6,212 10% $ 19,115 $ 18,369 4% as a percent of revenue 8% 9% (1)ppt 8% 9% (1)ppt sales and marketing expenses include payroll, employee benefits, stock-based compensation expense, and other headcount-related expenses associated with sales and marketing personnel, and the costs of advertising, promotions, trade shows, seminars, and other programs.three months ended march 31, 2026 compared with three months ended march 31, 2025sales and marketing expenses increased $602 million or 10% primarily driven by higher copilot advertising expenses, with headcount declining year-over-year. sales and marketing included an unfavorable foreign currency impact of 3%.nine months ended march 31, 2026 compared with nine months ended march 31, 2025sales and marketing expenses increased $746 million or 4% driven by higher copilot advertising expenses, with headcount declining year-over-year. sales and marketing included an unfavorable foreign currency impact of 2%.general and administrative (in millions, except percentages) three months endedmarch 31, percentagechange nine months endedmarch 31, percentagechange 2026 2025 2026 2025 general and administrative $ 1,931 $ 1,737 11% $ 5,669 $ 5,233 8% as a percent of revenue 2% 2% 0ppt 2% 3% (1)ppt ",
+  "contains": [
+   "gaming business, with headcount"
+  ],
+  "match_chunks": [
+   "2ab2008b-0cfb-4960-ad73-ffe218de040b"
+  ],
+  "best_overlap": 96,
+  "n_cands": 128
+ },
+ "tax_nongaap": {
+  "section": "Part I Item 2 \u2014 Income Taxes and Non-GAAP Financial Measures",
+  "quote": " income taxeseffective tax rateour effective tax rate was 19% and 18% for the three months ended march 31, 2026 and 2025, respectively, and 20% and 18% for the nine months ended march 31, 2026 and 2025, respectively. the increase in our effective tax rate for the three months ended march 31, 2026 compared to the prior year was primarily due to changes in the mix of our earnings and tax expenses between the u.s. and foreign countries. the increase in our effective tax rate for the nine months ended march 31, 2026 compared to the prior year was primarily due to changes in the mix of our earnings and tax expenses between the u.s. and foreign countries and deferred tax expense attributable to the dilution gain from the openai recapitalization.our effective tax rate was lower than the u.s. federal statutory rate for the three and nine months ended march 31, 2026, primarily due to earnings taxed at lower rates in foreign jurisdictions resulting from producing and distributing our products and services through our foreign regional operations center in ireland.uncertain tax positionswe remain under audit by the irs for tax years 2014 to 2017. with respect to the audit for tax years 2004 to 2013, on september 26, 2023, we received notices of proposed adjustment (\u201cnopas\u201d) from the irs. the primary issues in the nopas relate to intercompany transfer pricing. in the nopas, the irs is seeking an additional tax payment of $28.9 billion plus penalties and interest. as of march 31, 2026, we believe our allowances for income tax contingencies are adequate. we disagree with the proposed adjustments and will vigorously contest the nopas through the irs\u2019s administrative appeals office and, if necessary, judicial proceedings. we do not expect a final resolution of these issues in the next 12 months. based on the information currently available, we do not anticipate a significant increase or decrease to our income tax contingencies for these issues within the next 12 months.we are subject to income tax in many jurisdictions outside the u.s., some of which are currently under audit by local tax authorities. the resolution of these audits is not expected to be material to our consolidated financial statements. our operations in ireland remain subject to examination for tax years 2021 and thereafter.non-gaap financial measuresadjusted other income (expense), net, adjusted net income, and adjusted diluted eps are non-gaap financial measures which exclude net (gains) losses from investments in openai. we believe these non-gaap measures aid investors by providing additional insight into our financial performance and help clarify trends affecting our business. for comparability of reporting, management considers non-gaap measures in conjunction with gaap financial results in evaluating business performance. these non-gaap financial measures presented should not be considered a substitute for, or superior to, the measures of financial performance prepared in accordance with gaap. ",
+  "contains": [
+   "the information currently available,",
+   "not anticipate a significant",
+   "our income tax contingencies"
+  ],
+  "match_chunks": [
+   "f564ce73-2bfa-4d10-a4e3-5f659822bea2",
+   "3a51d22e-3220-4d2e-839e-be000b7b26ae"
+  ],
+  "best_overlap": 80,
+  "n_cands": 182
+ },
+ "reconciliation_liquidity": {
+  "section": "Part I Item 2 \u2014 Non-GAAP reconciliation and Liquidity",
+  "quote": " the following table reconciles our financial results reported in accordance with gaap to non-gaap financial results: (in millions, except percentages and per share amounts) three months endedmarch 31, percentagechange nine months endedmarch 31, percentagechange 2026 2025 2026 2025 other income (expense), net $ 942 $ (623 ) 251% $ 7,253 $ (3,194 ) 327% net (gains) losses from investments in openai 19 768 (98)% (5,898 ) 2,692 (319)% adjusted other income (expense), net (non-gaap) $ 961 $ 145 563% $ 1,355 $ (502 ) 370% net income $ 31,778 $ 25,824 23% $ 97,983 $ 74,599 31% net (gains) losses from investments in openai, net of tax of $(5), $(185), $1,415, and $(647) 14 583 (98)% (4,483 ) 2,045 (319)% adjusted net income (non-gaap) $ 31,792 $ 26,407 20% $ 93,500 $ 76,644 22% diluted earnings per share $ 4.27 $ 3.46 23% $ 13.14 $ 9.99 32% net (gains) losses from investments in openai 0 0.08 (100)% (0.60 ) 0.28 (314)% adjusted diluted earnings per share (non-gaap) $ 4.27 $ 3.54 21% $ 12.54 $ 10.27 22% liquidity and capital resourceswe expect existing cash, cash equivalents, short-term investments, cash flows from operations, and access to capital markets to continue to be sufficient to fund our operating activities and cash commitments for investing and financing activities, such as dividends, share repurchases, debt maturities, and material capital expenditures, for at least the next 12 months and thereafter for the foreseeable future. cash, cash equivalents, and investmentscash, cash equivalents, and short-term investments totaled $78.3 billion and $94.6 billion as of march 31, 2026 and june 30, 2025, respectively. equity and other investments were $33.7 billion and $15.4 billion as of march 31, 2026 and june 30, 2025, respectively. our short-term investments are primarily intended to facilitate liquidity and capital preservation. they consist predominantly of highly liquid investment-grade fixed-income securities, diversified among industries and individual issuers. the investments are predominantly u.s. dollar-denominated securities, but also include foreign currency-denominated securities to diversify risk. our fixed-income investments are exposed to interest rate risk and credit risk. the credit risk and average maturity of our fixed-income portfolio are managed to achieve economic returns that correlate to certain fixed-income indices. the settlement risk related to these investments is insignificant given that the short-term investments held are primarily highly liquid investment-grade fixed-income securities.valuationin general, and where applicable, we use quoted prices in active markets for identical assets or liabilities to determine the fair value of our financial instruments. this pricing methodology applies to our level 1 investments, such as u.s. government securities, common and preferred stock, and mutual funds. if quoted prices in active markets for identical assets or liabilities are not available to determine fair value, then we use quoted prices for similar assets and liabilities or inputs other than the quoted prices that are observable either directly or indirectly. this pricing methodology applies to our level 2 investments, such as commercial paper, certificates of deposit, u.s. agency securities, foreign government bonds, mortgage- and asset-backed securities, corporate notes and bonds, and municipal securities. level 3 investments are valued using internally-developed models with unobservable inputs. assets and liabilities measured at fair value on a recurring basis using unobservable inputs are an immaterial portion of our portfolio. ",
+  "contains": [
+   "internally-developed models with unobservable",
+   "valued using internally-developed models",
+   "indirectly. this pricing methodology"
+  ],
+  "match_chunks": [
+   "045f72f4-ba3f-40a8-91bd-993eb9af0285",
+   "74971483-aace-477e-a36b-69ff72cc1942"
+  ],
+  "best_overlap": 77,
+  "n_cands": 204
+ },
+ "cash_drivers": {
+  "section": "Part I Item 2 \u2014 Cash Flows; nine months",
+  "quote": " cash from operations increased $34.0 billion to $127.5 billion for the nine months ended march 31, 2026, primarily due to an increase in cash received from customers and a decrease in cash used to pay income taxes, offset in part by an increase in cash paid to suppliers. cash used in financing decreased $88 million to $40.8 billion for the nine months ended march 31, 2026, primarily due to a $6.0 billion decrease in cash used for repayments of debt, offset in part by a $3.8 billion increase in common stock repurchases and a $1.8 billion increase in dividends paid. cash used in investing increased $42.6 billion to $84.7 billion for the nine months ended march 31, 2026, primarily due to a $32.7 billion increase in additions to property and equipment, a $9.1 billion increase in other investing primarily to facilitate the purchase of components, and a $3.8 billion decrease in cash from net investment purchases, sales, and maturities. ",
+  "contains": [
+   "increase in other investing"
+  ],
+  "match_chunks": [
+   "db63c404-e910-45b7-9bbb-a489f7486b45"
+  ],
+  "best_overlap": 54,
+  "n_cands": 54
+ },
+ "unearned": {
+  "section": "Part I Item 2 \u2014 Unearned Revenue",
+  "quote": " unearned revenue comprises mainly unearned revenue related to volume licensing programs, which may include cloud services and software assurance (\u201csa\u201d). unearned revenue is generally invoiced annually at the beginning of each contract period for multi-year agreements and recognized ratably over the coverage period. unearned revenue also includes payments for other offerings for which we have been paid in advance and earn the revenue when we transfer control of the product or service. ",
+  "contains": [
+   "cloud services and software",
+   "includes payments for other",
+   "for other offerings for"
+  ],
+  "match_chunks": [
+   "1b477367-605e-4f94-8736-2a598d08256e",
+   "b468fd75-f8bc-4fa4-a61b-991ab078f707"
+  ],
+  "best_overlap": 30,
+  "n_cands": 30
+ },
+ "rpo": {
+  "section": "Note 11 \u2014 Remaining Performance Obligations",
+  "quote": " revenue allocated to remaining performance obligations, which includes unearned revenue and amounts expected to be invoiced and recognized as revenue in future periods, was $633 billion as of march 31, 2026. estimating revenue that will be allocated to remaining performance obligations can involve significant judgments, including identifying and assessing variable consideration and potential renegotiation of commitments. we consider factors such as the nature of the terms and duration of the contract across our portfolio of contracts. revenue allocated to remaining performance obligations related to the commercial portion of revenue was $627 billion as of march 31, 2026, with a weighted average duration of approximately 2.5 years. we expect to recognize approximately 30% of our total company remaining performance obligation revenue and 25% of our commercial remaining performance obligation revenue over the next 12 months and the remainder thereafter. ",
+  "contains": [
+   "of contracts. revenue allocated"
+  ],
+  "match_chunks": [
+   "271a3dad-a3c8-4b7f-8728-2a518c4f9fb2"
+  ],
+  "best_overlap": 60,
+  "n_cands": 60
+ },
+ "openai_accounting": {
+  "section": "Note 1 \u2014 Investments: OpenAI equity method",
+  "quote": " we have a long-term strategic partnership with openai. in october 2025, we signed a new definitive agreement with openai that extends this partnership. additionally, openai formed a public benefit corporation and completed a recapitalization (\u201copenai recapitalization\u201d). we have an investment of approximately 27 percent of openai on an as-converted basis accounted for under the equity method of accounting. as a result of the openai recapitalization, we had a decrease in our proportionate ownership of openai and recorded a dilution gain in other income (expense), net. refer to note 3 \u2013 other income (expense), net for additional information. we calculate our equity method income or loss using the hypothetical liquidation at book value (\u201chlbv\u201d) method because our liquidation rights and priorities differ from our underlying ownership interest. under the hlbv method, we recognize income or loss based on the change in the amount we would receive if the net assets of the investee were distributed at book value. we have made total funding commitments of $13 billion, of which $11.8 billion has been funded as of march 31, 2026. ",
+  "contains": [
+   "partnership. additionally, openai formed"
+  ],
+  "match_chunks": [
+   "371e8e2a-db42-485e-be6d-4e46b880e6ff"
+  ],
+  "best_overlap": 62,
+  "n_cands": 62
+ },
+ "openai_gains": {
+  "section": "Note 3 \u2014 Other Income (Expense), Net",
+  "quote": " other income (expense), net included $19 million of net losses and $5.9 billion of net gains for the three and nine months ended march 31, 2026, respectively, and $768 million and $2.7 billion of net losses for the three and nine months ended march 31, 2025, respectively, from investments in openai, primarily net recognized gains (losses) on our equity method investment reflected in other, net. the net gains recorded for the nine months ended march 31, 2026 primarily relate to the dilution gain from the openai recapitalization. ",
+  "contains": [
+   "31, 2025, respectively, from",
+   "march 31, 2026 primarily",
+   "million of net losses"
+  ],
+  "match_chunks": [
+   "453d1579-5c93-4304-b7d1-9c0abd54c951",
+   "518184a1-fd5a-419e-bd89-1193ff42c487"
+  ],
+  "best_overlap": 28,
+  "n_cands": 28
+ },
+ "cloud_definition": {
+  "section": "Note 16 \u2014 Microsoft Cloud revenue",
+  "quote": " our microsoft cloud revenue, which includes microsoft 365 commercial cloud, azure and other cloud services, the commercial portion of linkedin, and dynamics 365, was $54.5 billion and $155.1 billion for the three and nine months ended march 31, 2026, respectively, and $42.4 billion and $122.2 billion for the three and nine months ended march 31, 2025, respectively. these amounts are included in server products and cloud services, microsoft 365 commercial products and cloud services, linkedin, and dynamics products and cloud services in the table above. ",
+  "contains": [
+   "155.1"
+  ],
+  "match_chunks": [
+   "454c3a79-0ba0-4fae-a308-68284913ee55"
+  ],
+  "best_overlap": 36,
+  "n_cands": 36
+ },
+ "cash_equivalents": {
+  "section": "Note 1 \u2014 Investments",
+  "quote": " we consider all highly liquid interest-earning investments with a maturity of three months or less at the date of purchase to be cash equivalents. the fair values of these investments approximate their carrying values. in general, investments with original maturities of greater than three months and remaining maturities of less than one year are classified as short-term investments. investments with maturities beyond one year may be classified as short-term based on their highly liquid nature and because such marketable securities represent the investment of cash that is available for current operations. ",
+  "contains": [
+   "liquid interest-earning investments with",
+   "short-term investments. investments with",
+   "classified as short-term investments."
+  ],
+  "match_chunks": [
+   "d439a7e7-9c7f-47db-995d-83c5bc0f2ce3",
+   "836237b7-3203-448d-82c0-2eec9b40f8e5"
+  ],
+  "best_overlap": 36,
+  "n_cands": 36
+ }
+}
