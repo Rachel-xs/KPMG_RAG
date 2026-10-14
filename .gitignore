@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+data/raw/
+data/chunks/
+data/index/
+data/cache/
+logs/
+eval/results/
+.DS_Store

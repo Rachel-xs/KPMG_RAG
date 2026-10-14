@@ -10,5 +10,6 @@ sentence-transformers>=3.0
 # optional
 tiktoken>=0.7        # exact token counts (falls back to an approximation)
 openai>=1.40         # OpenAI embeddings / answer generation, once the key is shared
+langchain-core>=0.3  # rag/langchain_tool.py (Agent team integration)
 # dev
 pytest>=8.0
