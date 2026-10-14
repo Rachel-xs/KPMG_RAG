@@ -1,0 +1,39 @@
+# Pilot configuration for the Retrieval & RAG workstream.
+# Paths are relative to the repo root.
+
+# SEC requires a descriptive User-Agent with contact info:
+# https://www.sec.gov/os/accessing-edgar-data
+# You can also set it via the SEC_USER_AGENT environment variable (.env).
+user_agent: "Columbia QMSS Practicum your_name your_email@columbia.edu"
+
+# Provisional pilot corpus (Decision D5) — replace when Business/Data teams fix scope.
+tickers: [JPM, BAC, C, CAT, DE, HON]
+forms:            # form -> how many of the most recent filings to download
+  "10-K": 1
+  "10-Q": 2
+
+paths:
+  raw: data/raw
+  chunks: data/chunks/chunks.jsonl
+  index: data/index
+  cache: data/cache
+  logs: logs
+  results: eval/results
+
+chunking:          # Decision D3
+  target_tokens: 600
+  max_tokens: 800
+
+retrieval:
+  # "st:<model>"  = sentence-transformers (open-source, runs locally, free)
+  # "openai:<model>" = OpenAI embeddings (needs OPENAI_API_KEY)
+  # "lsa"          = TF-IDF + SVD, offline smoke-test only (NOT a real dense baseline)
+  embedder: "st:BAAI/bge-small-en-v1.5"
+  rrf_k: 60
+  candidate_k: 100
+
+generation:
+  model: "gpt-4o-mini"
+  # USD per 1M tokens — fill in from the provider's current price page to enable cost logging.
+  price_per_1m_input: null
+  price_per_1m_output: null

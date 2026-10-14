@@ -1,0 +1,14 @@
+# core
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+numpy>=1.26
+scikit-learn>=1.4
+pyyaml>=6.0
+# dense retrieval baseline (open-source, local; pulls in PyTorch)
+sentence-transformers>=3.0
+# optional
+tiktoken>=0.7        # exact token counts (falls back to an approximation)
+openai>=1.40         # OpenAI embeddings / answer generation, once the key is shared
+# dev
+pytest>=8.0
