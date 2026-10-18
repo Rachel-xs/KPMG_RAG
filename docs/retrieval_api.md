@@ -133,6 +133,7 @@ All 17 top-level fields are always present, and only those marked `| None` may b
     "is_table": true,
     "n_tokens": 512,
     "retrieval_method": "hybrid",
+    "retrieval_backend": "chroma",
     "bm25_rank": 1,
     "dense_rank": 2,
     "request_id": "b7c1..."
@@ -168,6 +169,7 @@ Consumers must read these keys with `.get()` and must not depend on any key not 
 | `is_table` | `bool` | chunk is (part of) a table |
 | `n_tokens` | `int \| None` | chunk length |
 | `retrieval_method` | `str` | `hybrid` / `bm25` / `dense` / `mock_keyword_overlap` |
+| `retrieval_backend` | `str` | `custom` / `chroma`; enables like-for-like architecture comparisons |
 | `bm25_rank`, `dense_rank` | `int \| None` | component ranks (hybrid only, for error analysis) |
 | `request_id` | `str` | joins this result to `logs/retrieval.jsonl` |
 
@@ -214,8 +216,8 @@ Every result carries `chunk_id, section, ticker, cik, company_name, form, access
   * `evidence_recall@10`, also reported @5. Deep multi-evidence questions are scored by the share of evidence items found.
   * `MRR@10`, computed against the first relevant chunk.
   * `hit@k` and `provenance@k` are secondary metrics.
-* **Envelope for experiments:** `Retriever.search(query, filters, top_k, method)` returns `{request_id, index_version, method, top_k, latency_ms, tokens, warnings, results: [RetrievedChunk]}`. The `results` list is the same as `retrieve()` with the same arguments. This is an internal API for Evaluation and the CLI, not part of the Agent contract.
-* **Logging:** every call appends one line to `logs/retrieval.jsonl` with `timestamp, request_id, query, filters, method, top_k, latency_ms, n_candidates, chunk_ids, scores, index_version`.
+* **Envelope for experiments:** a backend retriever's `search(query, filters, top_k, method)` returns `{request_id, index_version, backend, method, top_k, latency_ms, tokens, warnings, results: [RetrievedChunk]}`. The `results` list is the same as `retrieve()` with the same arguments. This is an internal API for Evaluation and the CLI, not part of the Agent contract.
+* **Logging:** every call appends one line to `logs/retrieval.jsonl` with `timestamp, request_id, query, filters, backend, method, top_k, latency_ms, n_candidates, chunk_ids, scores, index_version`.
 * **Benchmark leakage:** gold questions, answers and grading metadata must never be indexed.
 
 ---

@@ -16,6 +16,7 @@ paths:
   raw: data/raw
   chunks: data/chunks/chunks.jsonl
   index: data/index
+  chroma: data/chroma
   cache: data/cache
   logs: logs
   results: eval/results
@@ -25,6 +26,10 @@ chunking:          # Decision D3
   max_tokens: 800
 
 retrieval:
+  # MVP decision (2026-10-16): Chroma is the persistent vector serving layer.
+  # Set RAG_BACKEND=custom to reproduce the Experiment 1 NumPy/BM25 baseline.
+  backend: chroma
+  chroma_collection: sec_filing_chunks
   # "st:<model>"  = sentence-transformers (open-source, runs locally, free)
   # "openai:<model>" = OpenAI embeddings (needs OPENAI_API_KEY)
   # "lsa"          = TF-IDF + SVD, offline smoke-test only (NOT a real dense baseline)

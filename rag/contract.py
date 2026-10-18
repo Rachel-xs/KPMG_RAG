@@ -89,6 +89,7 @@ METADATA_KEYS = {
     "is_table",           # bool chunk is (part of) a table rendered as Markdown
     "n_tokens",           # int
     "retrieval_method",   # str  bm25 | dense | hybrid | mock_keyword_overlap
+    "retrieval_backend",  # str  custom | chroma
     "bm25_rank",          # int | None (hybrid only)
     "dense_rank",         # int | None (hybrid only)
     "request_id",         # str  joins the result to logs/retrieval.jsonl
