@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from .retrieve import Retriever
+from .retrieve import make_retriever
 
 META_KEYS = ("ticker", "form", "fiscal_year", "fiscal_period", "section", "accession", "accession_number", "is_table")
 _ALIASES = {"accession": "accession_number"}
@@ -106,8 +106,10 @@ def run_eval(
     filter_modes=("filtered", "unfiltered"),
     log_dir: Path | None = None,
     include_drafts: bool = False,
+    backend: str = "custom",
+    collection_name: str = "sec_filing_chunks",
 ) -> list[dict]:
-    retr = Retriever(index_dir, log_dir=log_dir)
+    retr = make_retriever(backend, index_dir, log_dir=log_dir, collection_name=collection_name)
     gold = load_gold(gold_path, include_drafts)
     if not gold:
         raise SystemExit(
@@ -139,7 +141,7 @@ def run_eval(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    run = {"timestamp": stamp, "index": retr.meta, "gold_file": str(gold_path), "n_questions": len(gold),
+    run = {"timestamp": stamp, "backend": backend, "index": retr.meta, "gold_file": str(gold_path), "n_questions": len(gold),
            "include_drafts": include_drafts, "summary": summary}
     (out_dir / f"run_{stamp}.json").write_text(json.dumps(run, indent=2))
     with open(out_dir / f"per_question_{stamp}.csv", "w", newline="") as f:

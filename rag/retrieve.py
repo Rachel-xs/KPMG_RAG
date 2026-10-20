@@ -104,7 +104,7 @@ class Retriever:
                  candidate_k: int = 100, method: str = "hybrid"):
         self.index_dir = Path(index_dir)
         if not (self.index_dir / "meta.json").exists():
-            raise RetrievalUnavailableError(f"no index found at {self.index_dir} (run `make pilot` or `python -m rag.cli index`)")
+            raise RetrievalUnavailableError(f"no index found at {self.index_dir} (run `python -m rag.cli index --backend custom`)")
         if method not in METHODS:
             raise ValueError(f"method must be one of {METHODS}")
         self.meta = json.loads((self.index_dir / "meta.json").read_text())
@@ -179,7 +179,7 @@ class Retriever:
         iv = self.meta["index_version"]
         results = [
             to_contract(self.chunks[d], rank, s, iv,
-                        {"retrieval_method": method, "request_id": request_id, **dbg.get(d, {})})
+                        {"retrieval_method": method, "retrieval_backend": "custom", "request_id": request_id, **dbg.get(d, {})})
             for rank, (d, s) in enumerate(scored[:top_k], start=1)
         ]
         resp = {
@@ -187,6 +187,7 @@ class Retriever:
             "query": query,
             "filters": filters or {},
             "method": method,
+            "backend": "custom",
             "top_k": top_k,
             "index_version": iv,
             "latency_ms": round((time.perf_counter() - t0) * 1000, 2),
@@ -203,7 +204,7 @@ class Retriever:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         row = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            **{k: resp[k] for k in ("request_id", "query", "filters", "method", "top_k", "latency_ms", "index_version")},
+            **{k: resp[k] for k in ("request_id", "query", "filters", "method", "backend", "top_k", "latency_ms", "index_version")},
             "query_embedding_tokens": resp["tokens"]["query_embedding"],
             "n_candidates": n_candidates,
             "chunk_ids": [r["chunk_id"] for r in resp["results"]],
@@ -214,21 +215,62 @@ class Retriever:
 
 
 # ---------- module-level tool (what the Agent imports) ----------
-_DEFAULT: Retriever | None = None
+_DEFAULT: object | None = None
 
 
-def _default_retriever() -> Retriever:
+def make_retriever(
+    backend: str,
+    index_dir: str | Path,
+    log_dir: str | Path | None = "logs",
+    rrf_k: int = 60,
+    candidate_k: int = 100,
+    method: str = "hybrid",
+    collection_name: str = "sec_filing_chunks",
+):
+    """Construct a backend without changing the Retrieval API v0 surface."""
+    backend = backend.strip().lower()
+    if backend == "custom":
+        return Retriever(index_dir, log_dir, rrf_k, candidate_k, method)
+    if backend == "chroma":
+        from .chroma_backend import ChromaRetriever
+
+        return ChromaRetriever(index_dir, log_dir, rrf_k, candidate_k, method, collection_name)
+    raise ValueError("RAG_BACKEND must be 'custom' or 'chroma'")
+
+
+def _default_retriever():
     global _DEFAULT
     if _DEFAULT is None:
-        index_dir = os.environ.get("RAG_INDEX_DIR")
-        log_dir: str | Path | None = os.environ.get("RAG_LOG_DIR")
-        if not index_dir or not log_dir:
-            from .config import load_config
+        from .config import load_config
 
-            paths = load_config()["paths"]
-            index_dir = index_dir or paths["index"]
-            log_dir = log_dir or paths["logs"]
-        _DEFAULT = Retriever(index_dir, log_dir=log_dir)
+        cfg = load_config()
+        rc, paths = cfg["retrieval"], cfg["paths"]
+        # Explicit legacy RAG_INDEX_DIR still selects the custom baseline unless
+        # RAG_BACKEND says otherwise. This keeps existing Agent/test deployments
+        # working while the selected default moves to Chroma.
+        backend_env = os.environ.get("RAG_BACKEND")
+        if backend_env:
+            backend = backend_env.lower()
+        elif os.environ.get("RAG_CHROMA_DIR"):
+            backend = "chroma"
+        elif os.environ.get("RAG_INDEX_DIR"):
+            backend = "custom"
+        else:
+            backend = rc.get("backend", "custom").lower()
+        if backend == "chroma":
+            index_dir = os.environ.get("RAG_CHROMA_DIR") or paths["chroma"]
+        else:
+            index_dir = os.environ.get("RAG_INDEX_DIR") or paths["index"]
+        log_dir: str | Path | None = os.environ.get("RAG_LOG_DIR")
+        log_dir = log_dir or paths["logs"]
+        _DEFAULT = make_retriever(
+            backend,
+            index_dir,
+            log_dir=log_dir,
+            rrf_k=rc["rrf_k"],
+            candidate_k=rc["candidate_k"],
+            collection_name=rc.get("chroma_collection", "sec_filing_chunks"),
+        )
     return _DEFAULT
 
 
@@ -237,7 +279,8 @@ def retrieve(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K
 
     Returns up to `top_k` chunks ranked by relevance (score desc, then chunk_id asc); [] if nothing matches.
     Raises ValueError for invalid input; RetrievalUnavailableError if the index cannot be loaded.
-    Index location: $RAG_INDEX_DIR, else config.yaml paths.index.
+    Backend: $RAG_BACKEND, else config.yaml retrieval.backend.
+    Index location: $RAG_CHROMA_DIR for Chroma or $RAG_INDEX_DIR for custom.
     """
     validate_query(query)
     validate_top_k(top_k)

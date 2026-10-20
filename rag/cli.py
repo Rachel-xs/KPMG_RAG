@@ -2,7 +2,7 @@
 
   ingest   download pilot filings from EDGAR           -> data/raw/
   chunk    section-aware chunking                      -> data/chunks/chunks.jsonl
-  index    build BM25 + dense index                    -> data/index/
+  index    build selected custom or Chroma index       -> data/index/ or data/chroma/
   pilot    ingest + chunk + index in one go
   search   query the index (prints top-k with metadata)
   answer   search + LLM answer with citations (needs OPENAI_API_KEY)
@@ -65,8 +65,10 @@ def main(argv=None):
     sub.add_parser("chunk")
     s = sub.add_parser("index")
     s.add_argument("--embedder", help="override retrieval.embedder, e.g. lsa or st:intfloat/e5-base-v2")
+    s.add_argument("--backend", choices=["custom", "chroma"], help="override retrieval.backend")
     s = sub.add_parser("pilot")
     s.add_argument("--embedder")
+    s.add_argument("--backend", choices=["custom", "chroma"], help="override retrieval.backend")
 
     for name in ("search", "answer"):
         s = sub.add_parser(name)
@@ -79,6 +81,7 @@ def main(argv=None):
         s.add_argument("--tables-only", action="store_true")
         s.add_argument("--k", type=int, default=5 if name == "search" else 8)
         s.add_argument("--method", default="hybrid", choices=["bm25", "dense", "hybrid"])
+        s.add_argument("--backend", choices=["custom", "chroma"], help="override retrieval.backend")
         s.add_argument("--json", action="store_true", help="print raw JSON response")
 
     s = sub.add_parser("eval")
@@ -87,6 +90,7 @@ def main(argv=None):
     s.add_argument("--ks", default="5,10")
     s.add_argument("--filters", default="filtered,unfiltered", help="filtered, unfiltered, or both")
     s.add_argument("--include-drafts", action="store_true", help="also score questions with status=draft")
+    s.add_argument("--backend", choices=["custom", "chroma"], help="override retrieval.backend")
     sub.add_parser("demo")
 
     a = p.parse_args(argv)
@@ -94,6 +98,7 @@ def main(argv=None):
     P = cfg["paths"]
     ch = cfg["chunking"]
     rc = cfg["retrieval"]
+    backend = getattr(a, "backend", None) or rc.get("backend", "custom")
 
     if a.cmd in ("ingest", "pilot"):
         from .ingest import EdgarClient, download_filings
@@ -105,14 +110,33 @@ def main(argv=None):
 
         chunk_corpus(P["raw"], P["chunks"], ch["target_tokens"], ch["max_tokens"])
     if a.cmd in ("index", "pilot"):
-        from .index import build_index
+        if backend == "chroma":
+            from .chroma_backend import build_chroma_index
 
-        build_index(P["chunks"], P["index"], a.embedder or rc["embedder"], P["cache"])
+            build_chroma_index(
+                P["chunks"],
+                P["chroma"],
+                a.embedder or rc["embedder"],
+                P["cache"],
+                rc.get("chroma_collection", "sec_filing_chunks"),
+            )
+        else:
+            from .index import build_index
+
+            build_index(P["chunks"], P["index"], a.embedder or rc["embedder"], P["cache"])
 
     if a.cmd in ("search", "answer"):
-        from .retrieve import Retriever
+        from .retrieve import make_retriever
 
-        r = Retriever(P["index"], P["logs"], rc["rrf_k"], rc["candidate_k"])
+        index_path = P["chroma"] if backend == "chroma" else P["index"]
+        r = make_retriever(
+            backend,
+            index_path,
+            P["logs"],
+            rc["rrf_k"],
+            rc["candidate_k"],
+            collection_name=rc.get("chroma_collection", "sec_filing_chunks"),
+        )
         resp = r.search(a.query, _filters(a), top_k=a.k, method=a.method)
         if a.cmd == "search":
             print(json.dumps(resp, indent=2)) if a.json else _print_results(resp)
@@ -127,9 +151,11 @@ def main(argv=None):
     if a.cmd == "eval":
         from .evaluate import run_eval
 
-        run_eval(P["index"], Path(a.gold), P["results"], methods=a.methods.split(","),
+        index_path = P["chroma"] if backend == "chroma" else P["index"]
+        run_eval(index_path, Path(a.gold), P["results"], methods=a.methods.split(","),
                  ks=tuple(int(k) for k in a.ks.split(",")), filter_modes=a.filters.split(","), log_dir=P["logs"],
-                 include_drafts=a.include_drafts)
+                 include_drafts=a.include_drafts, backend=backend,
+                 collection_name=rc.get("chroma_collection", "sec_filing_chunks"))
 
     if a.cmd == "demo":
         run_demo()

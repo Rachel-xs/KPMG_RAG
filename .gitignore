@@ -6,6 +6,7 @@ __pycache__/
 data/raw/
 data/chunks/
 data/index/
+data/chroma/
 data/cache/
 logs/
 eval/results/
