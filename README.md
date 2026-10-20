@@ -1,4 +1,9 @@
 
+Cross-team contracts:
+
+- Data Engineering -> RAG input proposal: [`docs/data_rag_schema_lock_v1.md`](docs/data_rag_schema_lock_v1.md)
+- RAG -> Agent/Evaluation output: [`docs/retrieval_api.md`](docs/retrieval_api.md)
+
 ## For the Agent team: LangChain tool
 
 ```python
