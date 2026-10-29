@@ -101,8 +101,9 @@ def to_contract(c: dict, rank: int, score: float, index_version: str, extra_meta
 
 class Retriever:
     def __init__(self, index_dir: str | Path, log_dir: str | Path | None = "logs", rrf_k: int = 60,
-                 candidate_k: int = 100, method: str = "hybrid"):
+                 candidate_k: int = 100, method: str = "hybrid", reranker=None, rerank_pool: int = 30):
         self.index_dir = Path(index_dir)
+        self.reranker, self.rerank_pool = reranker, rerank_pool  # optional cross-encoder (rag.rerank)
         if not (self.index_dir / "meta.json").exists():
             raise RetrievalUnavailableError(f"no index found at {self.index_dir} (run `python -m rag.cli index --backend custom`)")
         if method not in METHODS:
@@ -140,8 +141,12 @@ class Retriever:
         """Contract v0: ranked list of RetrievedChunk (possibly empty). Uses this Retriever's default method."""
         return self.search(query, filters, top_k, self.method)["results"]
 
-    def search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K, method: str | None = None) -> dict:
-        """Envelope for eval/debugging: {request_id, index_version, latency_ms, warnings, results: [RetrievedChunk]}."""
+    def search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K, method: str | None = None,
+               rerank: bool | None = None) -> dict:
+        """Envelope for eval/debugging: {request_id, index_version, latency_ms, warnings, results: [RetrievedChunk]}.
+
+        rerank=None uses the reranker if this Retriever has one; False forces first-stage order (for A/B runs).
+        """
         t0 = time.perf_counter()
         validate_query(query)
         validate_top_k(top_k)
@@ -176,18 +181,34 @@ class Retriever:
         scored = [(d, round(float(s), 6)) for d, s in scored]
         scored.sort(key=lambda x: (-x[1], str(self.chunks[x[0]]["chunk_id"])))
 
+        use_rr = bool(self.reranker is not None and (rerank is None or rerank) and scored)
+        if use_rr:
+            from .index import index_text
+
+            pool = scored[: max(self.rerank_pool, top_k)]
+            first = {d: r for r, (d, _) in enumerate(pool, 1)}
+            ce = self.reranker.score(query, [index_text(self.chunks[d]) for d, _ in pool])
+            scored = [(d, round(float(s), 6)) for (d, _), s in zip(pool, ce)]
+            scored.sort(key=lambda x: (-x[1], str(self.chunks[x[0]]["chunk_id"])))
+            for d, _ in scored:
+                dbg.setdefault(d, {})["first_stage_rank"] = first[d]
+            method_label = f"{method}+rerank"
+        else:
+            method_label = method
+
         iv = self.meta["index_version"]
         results = [
             to_contract(self.chunks[d], rank, s, iv,
-                        {"retrieval_method": method, "retrieval_backend": "custom", "request_id": request_id, **dbg.get(d, {})})
+                        {"retrieval_method": method_label, "retrieval_backend": "custom", "request_id": request_id, **dbg.get(d, {})})
             for rank, (d, s) in enumerate(scored[:top_k], start=1)
         ]
         resp = {
             "request_id": request_id,
             "query": query,
             "filters": filters or {},
-            "method": method,
+            "method": method_label,
             "backend": "custom",
+            "reranker": self.reranker.spec if use_rr else None,
             "top_k": top_k,
             "index_version": iv,
             "latency_ms": round((time.perf_counter() - t0) * 1000, 2),
@@ -271,6 +292,11 @@ def _default_retriever():
             candidate_k=rc["candidate_k"],
             collection_name=rc.get("chroma_collection", "sec_filing_chunks"),
         )
+        rr_spec = os.environ.get("RAG_RERANKER", rc.get("reranker"))
+        if rr_spec and str(rr_spec).lower() != "none" and hasattr(_DEFAULT, "reranker"):
+            from .rerank import load_reranker
+
+            _DEFAULT.reranker = load_reranker(rr_spec)
     return _DEFAULT
 
 

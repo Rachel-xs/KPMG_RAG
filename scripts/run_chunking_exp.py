@@ -102,6 +102,8 @@ def main():
     ap.add_argument("--filters", default="filtered,unfiltered")
     ap.add_argument("--gold", default="eval/gold_v0_msft.jsonl")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--rerank", default=None, help="also run each method with a cross-encoder, e.g. st:BAAI/bge-reranker-base")
+    ap.add_argument("--rerank-pool", type=int, default=CHILD_POOL, help="first-stage candidates the reranker re-scores")
     ap.add_argument("--ks", default=DEFAULT_KS, help="comma-separated k values, e.g. 3,5,8,10 (must include 5)")
     a = ap.parse_args()
 
@@ -109,6 +111,10 @@ def main():
     if 5 not in ks or max(ks) > CHILD_POOL:
         ap.error(f"--ks must include 5 and stay <= {CHILD_POOL}")
     tok = Tok(a.tokenizer)
+    reranker = None
+    if a.rerank:
+        from rag.rerank import load_reranker
+        reranker = load_reranker(a.rerank)
     chunks_a = [json.loads(l) for l in open(ROOT / a.chunks_a)]
     gold = load_gold(ROOT / a.gold, True)
     tq = table_questions(gold, chunks_a)
@@ -132,16 +138,19 @@ def main():
                      "mean_tokens": round(statistics.mean(n), 1), "max_tokens": max(n),
                      "over_512": sum(x > 512 for x in n), "index_version": meta["index_version"],
                      "chunking_version": chunks[0].get("chunking_version"), "build_seconds": meta["build_seconds"]}
-        r = Retriever(idir, log_dir=None)
+        r = Retriever(idir, log_dir=None, reranker=reranker, rerank_pool=a.rerank_pool)
+        runs = [(m, False) for m in methods] + ([(m, True) for m in methods] if reranker else [])
         for fm in fms:
-            for m in methods:
+            for m, use_rr in runs:
+                label = f"{m}+rerank" if use_rr else m
                 for q in gold:
-                    resp = r.search(q["question"], filters=q.get("filters") if fm == "filtered" else None, top_k=CHILD_POOL, method=m)
+                    resp = r.search(q["question"], filters=q.get("filters") if fm == "filtered" else None, top_k=CHILD_POOL,
+                                    method=m, rerank=use_rr)
                     s = score_question(q, resp["results"][: max(ks)], ks)
                     for k in ks:
                         s.update(parent_scores(q, resp["results"], pmap, tok, k))
                         s[f"child_top{k}_tokens"] = sum(x["metadata"].get("n_tokens") or 0 for x in resp["results"][:k])
-                    per_q.append({"variant": v, "filters": fm, "method": m, "qid": q["qid"], "tier": q.get("tier"),
+                    per_q.append({"variant": v, "filters": fm, "method": label, "latency_ms": resp["latency_ms"], "qid": q["qid"], "tier": q.get("tier"),
                                   "qtype": "table" if q["qid"] in tq else "text", "top5_tokens": s["child_top5_tokens"], **s})
         print(f"[exp] {v} done: {builds[v]}")
 
@@ -159,6 +168,7 @@ def main():
             sub = [x for x in rs if x["qtype"] == qt]
             row[f"recall@5_{qt}_q"] = round(statistics.mean(x["evidence_recall@5"] for x in sub), 3) if sub else None
         row["top5_tokens_mean"] = round(statistics.mean(x["top5_tokens"] for x in rs))
+        row["latency_ms_p50"] = round(statistics.median(x["latency_ms"] for x in rs))
         summary.append(row)
 
     # ---- paired comparison vs A (per question, recall@5) ----
@@ -171,7 +181,21 @@ def main():
         paired.append({"variant": v, "filters": fm, "method": m, "wins": sum(x > 0 for x in d),
                        "losses": sum(x < 0 for x in d), "ties": sum(x == 0 for x in d), "mean_delta_recall@5": round(statistics.mean(d), 3)})
 
-    for name, rows in (("per_question", per_q), ("summary", summary), ("paired_vs_A", paired)):
+    # ---- paired: +rerank vs the same variant/method without it ----
+    paired_rr = []
+    nr = {(r["variant"], r["filters"], r["method"], r["qid"]): r for r in per_q if not r["method"].endswith("+rerank")}
+    for (v, fm, m), rs in groups.items():
+        if not m.endswith("+rerank"):
+            continue
+        b = m[: -len("+rerank")]
+        for metric in ("evidence_recall@5", "evidence_recall@8", "mrr", "parent_recall@5", "parent_recall@8"):
+            if metric not in rs[0]:
+                continue
+            d = [x[metric] - nr[(v, fm, b, x["qid"])][metric] for x in rs]
+            paired_rr.append({"variant": v, "filters": fm, "method": m, "metric": metric, "wins": sum(x > 0 for x in d),
+                              "losses": sum(x < 0 for x in d), "mean_delta": round(statistics.mean(d), 3)})
+
+    for name, rows in (("per_question", per_q), ("summary", summary), ("paired_vs_A", paired), ("paired_rerank", paired_rr)):
         if rows:
             with open(out / f"{name}.csv", "w", newline="") as f:
                 w = csv.DictWriter(f, fieldnames=list(rows[0]))
@@ -193,6 +217,8 @@ def main():
         lines += ["", "## Paired vs A (recall@5, per question)", "", "| variant | filters | method | wins | losses | ties | mean Δ |", "|---|---|---|---|---|---|---|"]
         lines += [f"| {p['variant']} | {p['filters']} | {p['method']} | {p['wins']} | {p['losses']} | {p['ties']} | {p['mean_delta_recall@5']} |"
                   for p in sorted(paired, key=lambda p: (p["filters"], p["method"], p["variant"]))]
+    lines += ["", "## Latency (median ms per query, incl. reranking)", "", "| variant | filters | method | p50 ms |", "|---|---|---|---|"]
+    lines += [f"| {s['variant']} | {s['filters']} | {s['method']} | {s['latency_ms_p50']} |" for s in sorted(summary, key=lambda s: (s["filters"], s["method"], s["variant"]))]
     lines += ["", "## k sweep (what the Agent puts in its context)", "",
               "Child = top-k retrieved chunks. Parent = top-k distinct parents (small-to-big, deduplicated). Tokens = bge-small tokens, mean per question.", "",
               "| variant | filters | method | k | child recall@k | child tokens | parent recall@k | parent tokens |", "|---|---|---|---|---|---|---|---|"]
@@ -200,6 +226,9 @@ def main():
         for k in ks:
             lines.append(f"| {s['variant']} | {s['filters']} | {s['method']} | {k} | {s.get(f'evidence_recall@{k}')} | "
                          f"{round(s[f'child_top{k}_tokens'])} | {s[f'parent_recall@{k}']} | {round(s[f'parent_top{k}_tokens'])} |")
+    if paired_rr:
+        lines += ["", "## Reranker vs no reranker (same variant, per question)", "", "| variant | filters | method | metric | wins | losses | mean Δ |", "|---|---|---|---|---|---|---|"]
+        lines += [f"| {p['variant']} | {p['filters']} | {p['method']} | {p['metric']} | {p['wins']} | {p['losses']} | {p['mean_delta']} |" for p in paired_rr]
     lines += ["", f"Noise note: {len(gold)} questions -> one question ≈ {1/len(gold):.3f}; treat |Δ| < ~0.07 as noise."]
     (out / "report.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
