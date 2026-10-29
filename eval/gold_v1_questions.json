@@ -1,0 +1,802 @@
+[
+ {
+  "category": "Extraction (single fact)",
+  "id": "GSv0-MSFT-001",
+  "question": "What was Microsoft’s total revenue for the three months ended March 31, 2026? State the amount in USD millions.",
+  "expected_answer": "USD 82,886 million",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "GSv0-MSFT-002",
+  "question": "What was Microsoft’s GAAP net income for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 31,778 million",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "GSv0-MSFT-003",
+  "question": "What was Microsoft’s net cash from operations for the nine months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 127,494 million",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-001",
+  "question": "What was Microsoft's operating income for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 38,398 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-002",
+  "question": "What was Microsoft's operating income for the nine months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 114,634 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-003",
+  "question": "What was Microsoft's GAAP net income for the nine months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 97,983 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-004",
+  "question": "What were Microsoft's diluted earnings per share for the three months ended March 31, 2026?",
+  "expected_answer": "USD 4.27 per share",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-005",
+  "question": "What was Microsoft's gross margin in dollars for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 56,058 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-006",
+  "question": "How much did Microsoft spend on research and development in the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 8,915 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-007",
+  "question": "How much cash did Microsoft spend on additions to property and equipment in the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 30,876 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-008",
+  "question": "What were Microsoft's total assets as of March 31, 2026, in USD millions?",
+  "expected_answer": "USD 694,228 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-009",
+  "question": "What was Microsoft's balance of cash and cash equivalents (excluding short-term investments) as of March 31, 2026, in USD millions?",
+  "expected_answer": "USD 32,105 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-010",
+  "question": "What was Microsoft's total stockholders' equity as of March 31, 2026, in USD millions?",
+  "expected_answer": "USD 414,367 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-011",
+  "question": "What was Microsoft's long-term debt (the non-current portion shown on the balance sheet) as of March 31, 2026, in USD millions?",
+  "expected_answer": "USD 31,423 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-012",
+  "question": "What was Microsoft's current unearned revenue as of March 31, 2026, in USD millions?",
+  "expected_answer": "USD 50,924 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-013",
+  "question": "What was Microsoft's net cash flow from investing activities for the nine months ended March 31, 2026? Give the amount with its sign in USD millions.",
+  "expected_answer": "USD -84,669 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-014",
+  "question": "How much cash did Microsoft spend repurchasing common stock in the nine months ended March 31, 2026, according to the cash flow statement?",
+  "expected_answer": "USD 17,692 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-015",
+  "question": "What dividend per share did Microsoft declare for the three months ended March 31, 2026?",
+  "expected_answer": "USD 0.91 per share",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Extraction (single fact)",
+  "id": "EV1-016",
+  "question": "What effective tax rate did Microsoft report for the nine months ended March 31, 2026?",
+  "expected_answer": "20%",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-017",
+  "question": "What was Intelligent Cloud segment revenue for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 34,681 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-018",
+  "question": "What was operating income of the Productivity and Business Processes segment for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 20,973 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-019",
+  "question": "What was More Personal Computing segment revenue for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 13,192 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-020",
+  "question": "How much revenue did Microsoft's Gaming products and services generate in the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 5,341 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-021",
+  "question": "What was LinkedIn revenue for the nine months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 14,628 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-022",
+  "question": "What was revenue from Server products and cloud services for the three months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 32,592 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Segment and disaggregated revenue",
+  "id": "EV1-023",
+  "question": "How much of Microsoft's revenue for the three months ended March 31, 2026 came from the United States, in USD millions?",
+  "expected_answer": "USD 42,336 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Calculation",
+  "id": "GSv0-MSFT-013",
+  "question": "Calculate Microsoft’s year-over-year total revenue growth for the three months ended March 31, 2026. Use the displayed amounts and round the percentage to two decimals.",
+  "expected_answer": "18.30%",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "GSv0-MSFT-014",
+  "question": "For the nine months ended March 31 in 2026 and 2025, calculate operating cash flow less cash additions to property and equipment. Use that specific definition, not a company-defined non-GAAP measure. Did this cash surplus increase or decrease?",
+  "expected_answer": "USD 1,305 million",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "GSv0-MSFT-015",
+  "question": "Compare quarterly operating margins for Productivity and Business Processes and Intelligent Cloud for the three months ended March 31, 2026. Calculate operating income divided by segment revenue, round to two decimals, and identify the higher margin.",
+  "expected_answer": "59.90%",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "GSv0-MSFT-016",
+  "question": "How much did total cash, cash equivalents, and short-term investments change from June 30, 2025 to March 31, 2026? Use USD millions and calculate the percentage change relative to June 30, 2025.",
+  "expected_answer": "USD -16,293 million",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-026",
+  "question": "What was Microsoft's operating margin (operating income divided by total revenue) for the three months ended March 31, 2026? Round to two decimals.",
+  "expected_answer": "46.33%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-027",
+  "question": "By how many percentage points did Microsoft's quarterly operating margin change from the three months ended March 31, 2025 to the three months ended March 31, 2026?",
+  "expected_answer": "0.66 pp",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-028",
+  "question": "Calculate Microsoft's gross margin percentage for the three months ended March 31, 2026 and 2025, and the change in percentage points.",
+  "expected_answer": "-1.08 pp",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-029",
+  "question": "By what percentage did Microsoft's net income grow year over year in the three months ended March 31, 2026? Round to two decimals.",
+  "expected_answer": "23.06%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-030",
+  "question": "What was Microsoft's year-over-year total revenue growth for the nine months ended March 31, 2026? Round to two decimals.",
+  "expected_answer": "17.80%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-031",
+  "question": "What share of its quarterly revenue did Microsoft spend on cash additions to property and equipment in the three months ended March 31, 2026? Round to two decimals.",
+  "expected_answer": "37.25%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-032",
+  "question": "Compute Microsoft's effective tax rate for the three months ended March 31, 2026 from the income statement (provision for income taxes divided by income before income taxes), to two decimals. How does it compare with the rate the filing reports?",
+  "expected_answer": "19.22%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-033",
+  "question": "What was the Intelligent Cloud segment's operating margin for the nine months ended March 31, 2026? Round to two decimals.",
+  "expected_answer": "41.65%",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-034",
+  "question": "What was Microsoft's current ratio (total current assets divided by total current liabilities) as of March 31, 2026? Round to two decimals.",
+  "expected_answer": "1.28x",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-035",
+  "question": "How much cash did Microsoft return to shareholders through dividends paid and share repurchases in the nine months ended March 31, 2026, according to the cash flow statement?",
+  "expected_answer": "USD 37,379 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Calculation",
+  "id": "EV1-036",
+  "question": "Microsoft Cloud revenue is disclosed in the filing's text. What share of total revenue did it represent in the three months ended March 31, 2026? Round to one decimal.",
+  "expected_answer": "65.8%",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Comparison",
+  "id": "EV1-024",
+  "question": "Which of Microsoft's three reportable segments earned the most operating income in the three months ended March 31, 2026, and how much?",
+  "expected_answer": "Productivity and Business Processes, USD 20,973 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Comparison",
+  "id": "EV1-025",
+  "question": "How did More Personal Computing revenue for the nine months ended March 31, 2026 compare with the same period a year earlier? Give the change in USD millions.",
+  "expected_answer": "Unchanged: USD 41,198 million in both periods",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Derived periods",
+  "id": "GSv0-MSFT-025",
+  "question": "Derive Microsoft’s revenue for the first six months of fiscal 2026 and fiscal 2025 from the nine-month and third-quarter columns. Calculate the year-over-year growth for those six-month periods. State the date ranges and use USD millions.",
+  "expected_answer": "17.55%",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Derived periods",
+  "id": "EV1-037",
+  "question": "Microsoft does not file a 10-Q for its fourth fiscal quarter. Using the FY2026 10-K and the Q3 FY2026 10-Q, derive Microsoft's revenue for the three months ended June 30, 2026, in USD millions.",
+  "expected_answer": "USD 90,007 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Derived periods",
+  "id": "EV1-038",
+  "question": "Microsoft does not file a 10-Q for its fourth fiscal quarter. Using the FY2026 10-K and the Q3 FY2026 10-Q, derive Microsoft's operating income for the three months ended June 30, 2026, in USD millions.",
+  "expected_answer": "USD 40,603 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Derived periods",
+  "id": "EV1-039",
+  "question": "Microsoft does not file a 10-Q for its fourth fiscal quarter. Using the FY2026 10-K and the Q3 FY2026 10-Q, derive Microsoft's net income for the three months ended June 30, 2026, in USD millions.",
+  "expected_answer": "USD 35,766 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "GSv0-MSFT-023",
+  "question": "Reconcile Microsoft’s change in cash and cash equivalents for the nine months ended March 31, 2026 using operating, financing, investing, and foreign-exchange cash flows. Then reconcile the ending cash balance to the balance sheet. Use USD millions.",
+  "expected_answer": "USD 1,863 million",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "GSv0-MSFT-024",
+  "question": "Reconcile the three segments’ year-over-year quarterly revenue changes to Microsoft’s total change for the three months ended March 31, 2026. Calculate Intelligent Cloud’s share of the net total increase and explain its primary driver.",
+  "expected_answer": "61.86%",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "EV1-040",
+  "question": "Do the three segments' operating incomes for the three months ended March 31, 2026 add up to Microsoft's consolidated operating income? Show the sum in USD millions.",
+  "expected_answer": "USD 38,398 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "EV1-041",
+  "question": "Reconstruct Microsoft's operating income for the three months ended March 31, 2026 from gross margin and the three operating expense lines. Show the calculation in USD millions.",
+  "expected_answer": "USD 38,398 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "EV1-042",
+  "question": "Microsoft reports adjusted net income that excludes OpenAI investment effects. Using GAAP net income and the after-tax OpenAI adjustment, what was adjusted net income for the nine months ended March 31, 2026, in USD millions?",
+  "expected_answer": "USD 93,500 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Reconciliation",
+  "id": "EV1-043",
+  "question": "More Personal Computing revenue fell year over year in the three months ended March 31, 2026, yet its operating income rose. Quantify both changes and the change in its cost of revenue, in USD millions.",
+  "expected_answer": "USD 146 million",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-004",
+  "question": "Name Microsoft’s reportable segments in this filing.",
+  "expected_answer": "Productivity and Business Processes; Intelligent Cloud; More Personal Computing.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-005",
+  "question": "Which reportable segment includes LinkedIn?",
+  "expected_answer": "Productivity and Business Processes.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-006",
+  "question": "Which reportable segment includes Azure and other cloud services?",
+  "expected_answer": "Intelligent Cloud, within Server products and cloud services.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-007",
+  "question": "Which reportable segment includes Xbox hardware and Xbox content and services?",
+  "expected_answer": "More Personal Computing, within Gaming.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-008",
+  "question": "What categories make up Microsoft Cloud revenue as defined in the filing?",
+  "expected_answer": "Microsoft 365 Commercial cloud, Azure and other cloud services, the commercial portion of LinkedIn, and Dynamics 365.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-009",
+  "question": "What does revenue allocated to remaining performance obligations include?",
+  "expected_answer": "Unearned revenue and amounts expected to be invoiced and recognized as revenue in future periods.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-010",
+  "question": "Which investment-related items are excluded from the adjusted net income and adjusted diluted EPS measures?",
+  "expected_answer": "Net gains and losses from investments in OpenAI.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-011",
+  "question": "What accounting method does Microsoft use for its OpenAI investment, and what method is used to calculate its equity-method income or loss?",
+  "expected_answer": "The equity method, using hypothetical liquidation at book value (HLBV) to calculate income or loss because liquidation rights and priorities differ from the underlying ownership interest.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Definition",
+  "id": "GSv0-MSFT-012",
+  "question": "How does Microsoft define cash equivalents in its investment policy?",
+  "expected_answer": "Highly liquid interest-earning investments with a maturity of three months or less at the date of purchase.",
+  "source": "RAG",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-017",
+  "question": "For the quarter ended March 31, 2026, contrast the reported revenue trends in Intelligent Cloud and More Personal Computing, including their principal drivers.",
+  "expected_answer": "Intelligent Cloud revenue increased, driven by Azure. More Personal Computing revenue decreased due to lower hardware sales across Devices and Gaming, partly offset by Search advertising growth.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-018",
+  "question": "How did Microsoft’s reported quarterly gross-margin-percentage trends differ between Productivity and Business Processes and Intelligent Cloud?",
+  "expected_answer": "PBP’s gross margin percentage increased slightly because of Microsoft 365 Commercial cloud efficiency gains despite AI investment and usage. IC’s decreased because of continued AI infrastructure investment, partly offset by Azure efficiency gains.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-019",
+  "question": "Compare Microsoft’s explanations for More Personal Computing revenue in the three-month and nine-month periods ended March 31, 2026.",
+  "expected_answer": "Quarterly revenue decreased because lower Devices and Gaming hardware sales outweighed part of Search advertising growth. Nine-month revenue was relatively unchanged, with Search advertising growth offset by Gaming decline.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-020",
+  "question": "Contrast the main drivers of Microsoft’s higher effective tax rate in the three-month and nine-month periods ended March 31, 2026.",
+  "expected_answer": "Both periods were affected by changes in the U.S./foreign mix of earnings and tax expenses. The nine-month increase also reflected deferred tax expense attributable to the OpenAI recapitalization dilution gain.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-021",
+  "question": "Compare the directions of the OpenAI investment effects on current-year quarterly versus nine-month net income and diluted EPS.",
+  "expected_answer": "Quarterly results were negatively affected by OpenAI investment net losses; nine-month results were positively affected by net gains. These are different reporting durations, not contradictory results.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-022",
+  "question": "Contrast the stated drivers of nine-month operating cash flow and investing cash outflow changes versus the prior year.",
+  "expected_answer": "Operating cash flow increased with higher customer receipts and lower income-tax payments, partly offset by higher supplier payments. Investing outflow increased with higher cash additions to property and equipment, other investing to facilitate component purchases, and lower cash from net investment purchases, sales, and maturities.",
+  "source": "RAG",
+  "tier": "comparative"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-026",
+  "question": "Explain why More Personal Computing’s quarterly operating income increased even though its revenue decreased. Connect the consolidated revenue narrative with the segment’s cost and margin explanations.",
+  "expected_answer": "Lower Devices and Gaming hardware sales reduced revenue, partly offset by Search advertising growth. Lower hardware sales also reduced cost of revenue; gross margin increased with Search advertising and Gaming, and the sales mix shifted toward higher-margin businesses. These improvements more than offset higher operating expenses, allowing operating income to increase.",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-027",
+  "question": "Explain how Microsoft’s quarterly gross margin in dollars could increase while its gross margin percentage decreased. Use the income statement and management’s reported drivers without assuming that margin dollars and margin percentage are the same measure.",
+  "expected_answer": "Revenue and gross-margin dollars both increased, but revenue grew faster than gross-margin dollars, so gross margin as a share of revenue declined. Management attributed percentage pressure to continued AI infrastructure investment and growing AI usage, partially offset by Microsoft Cloud efficiency gains.",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-028",
+  "question": "Why should Microsoft Cloud revenue not be added to the reportable segments’ revenues when constructing total company revenue? Identify the relevant components and explain the overlap.",
+  "expected_answer": "Microsoft Cloud is a cross-cutting revenue grouping, not an additional segment. It includes Microsoft 365 Commercial cloud, Azure and other cloud services, commercial LinkedIn, and Dynamics 365. These are already included in PBP and IC product/service revenue and therefore in consolidated segment revenue; adding Cloud again would double-count.",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-029",
+  "question": "Connect the OpenAI recapitalization accounting with the nine-month GAAP versus adjusted net-income comparison. Why does excluding OpenAI effects reduce current-year net income but increase prior-year net income?",
+  "expected_answer": "The recapitalization decreased Microsoft’s proportionate ownership and produced a dilution gain. Nine-month current-year OpenAI investment effects were net gains, primarily from that dilution gain, so removing their after-tax effect lowers adjusted net income. Prior-year effects were net losses, so excluding them raises adjusted net income. The adjustment excludes OpenAI gains/losses, not all investment income.",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Narrative",
+  "id": "GSv0-MSFT-030",
+  "question": "Explain why commercial remaining performance obligations and balance-sheet unearned revenue should not be treated as interchangeable measures or added together as independent revenue pools.",
+  "expected_answer": "Remaining performance obligations include both unearned revenue and amounts expected to be invoiced and recognized in future periods, while unearned revenue mainly reflects advance billings/payments before recognition. Commercial RPO is also a commercial-scope measure, whereas balance-sheet unearned revenue is company-wide. They overlap and differ in invoicing status and scope; adding them double-counts overlapping commitments and neither is current-period recognized revenue.",
+  "source": "RAG",
+  "tier": "deep"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-044",
+  "question": "By what percentage did Azure and other cloud services revenue grow in the three months ended March 31, 2026?",
+  "expected_answer": "40%",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-045",
+  "question": "What was Microsoft Cloud revenue for the three months ended March 31, 2026, and how fast did it grow?",
+  "expected_answer": "$54.5 billion; 29%",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-046",
+  "question": "What was Microsoft's commercial remaining performance obligation, and by how much did it increase?",
+  "expected_answer": "$627 billion; 99%",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-047",
+  "question": "Approximately what percentage of OpenAI does Microsoft own, and how does it account for the investment?",
+  "expected_answer": "approximately 27 percent; as-converted basis; equity method",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-048",
+  "question": "Why was Microsoft's effective tax rate lower than the U.S. federal statutory rate in the periods ended March 31, 2026?",
+  "expected_answer": "earnings taxed at lower rates in foreign jurisdictions; foreign regional operations center in Ireland",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Narrative",
+  "id": "EV1-049",
+  "question": "What drove the increase in Microsoft's sales and marketing expenses in the three months ended March 31, 2026, and by how much did they rise?",
+  "expected_answer": "higher Copilot advertising expenses; $602 million; 10%",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-050",
+  "question": "What was Apple's total net sales (revenue) for its fiscal Q2 2026 (quarter ended March 28, 2026), in USD millions?",
+  "expected_answer": "USD 111,184 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-051",
+  "question": "What was Amazon's net income for its Q1 2026 (quarter ended March 31, 2026), in USD millions?",
+  "expected_answer": "USD 30,255 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-052",
+  "question": "What was Meta's income from operations for its Q1 2026 (quarter ended March 31, 2026), in USD millions?",
+  "expected_answer": "USD 22,872 million",
+  "source": "New",
+  "tier": "basicZ"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-053",
+  "question": "What was NVIDIA's revenue for its fiscal Q1 2027 (quarter ended April 26, 2026), in USD millions?",
+  "expected_answer": "USD 81,615 million",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-054",
+  "question": "Among Microsoft, Apple, Amazon, Meta and NVIDIA, which company reported the highest revenue for its fiscal quarter that ended in March or April 2026, and how much?",
+  "expected_answer": "Amazon, USD 181,519 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-055",
+  "question": "Rank Microsoft, Apple, Amazon, Meta and NVIDIA by operating margin (operating income / revenue) for their fiscal quarters that ended in March or April 2026. Which is highest, and what is its margin to two decimals?",
+  "expected_answer": "NVIDIA 65.60% > Microsoft 46.33% > Meta 40.62% > Apple 32.28% > Amazon 13.14%",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-056",
+  "question": "For the fiscal quarters ended in March or April 2026, which of Microsoft, Apple, Amazon, Meta and NVIDIA reported net income higher than operating income?",
+  "expected_answer": "Amazon, Meta, NVIDIA",
+  "source": "New",
+  "tier": "deep"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-057",
+  "question": "What was the combined revenue of Microsoft, Apple, Amazon, Meta and NVIDIA for their fiscal quarters that ended in March or April 2026, in USD millions?",
+  "expected_answer": "USD 513,515 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-058",
+  "question": "NVIDIA's 10-Q covers the quarter ended April 26, 2026. Which fiscal year and fiscal quarter is that, under the Retrieval API rule that the fiscal year is the calendar year in which the fiscal year ends?",
+  "expected_answer": "FY2027 Q1",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-059",
+  "question": "By how much did Amazon's net income exceed its operating income in Q1 2026 (quarter ended March 31, 2026), in USD millions?",
+  "expected_answer": "USD 6,403 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Cross-company",
+  "id": "EV1-060",
+  "question": "Compare Microsoft's and Meta's operating margins for the quarter ended March 31, 2026. Which is higher, and by how many percentage points?",
+  "expected_answer": "Microsoft higher by 5.71 pp",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-061",
+  "question": "What was Azure's revenue in dollars for the three months ended March 31, 2026?",
+  "expected_answer": "The filing gives only Azure's growth rate (40%), not its dollar revenue",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-062",
+  "question": "What was Microsoft's share price at the close on March 31, 2026?",
+  "expected_answer": "Share prices are not in the 10-Q",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-063",
+  "question": "What revenue will Microsoft report for the quarter ending June 30, 2027?",
+  "expected_answer": "A forecast; filings report historical results",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-064",
+  "question": "What was Tesla's total revenue for the quarter ended March 31, 2026?",
+  "expected_answer": "Tesla is not in the pilot corpus",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-065",
+  "question": "What was Microsoft's revenue for the three months ended September 30, 2026?",
+  "expected_answer": "That 10-Q is outside the corpus snapshot",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-066",
+  "question": "How many employees did Microsoft have on March 31, 2026?",
+  "expected_answer": "The 10-Q says headcount declined year over year but gives no number",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "Unanswerable / out of scope",
+  "id": "EV1-067",
+  "question": "Should I buy Microsoft stock based on this quarter's results?",
+  "expected_answer": "Investment advice is out of scope",
+  "source": "New",
+  "tier": "basic"
+ },
+ {
+  "category": "False premise",
+  "id": "EV1-068",
+  "question": "Why did Microsoft's total revenue decline in the three months ended March 31, 2026?",
+  "expected_answer": "Premise is false: revenue rose 18.30% to USD 82,886 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "False premise",
+  "id": "EV1-069",
+  "question": "How large was Microsoft's net loss for the nine months ended March 31, 2026?",
+  "expected_answer": "Premise is false: net income was USD 97,983 million",
+  "source": "New",
+  "tier": "comparative"
+ },
+ {
+  "category": "False premise",
+  "id": "EV1-070",
+  "question": "What was the operating income of Microsoft's 'Microsoft Cloud' reportable segment for the three months ended March 31, 2026?",
+  "expected_answer": "Premise is false: Microsoft Cloud is a cross-cutting revenue metric, not a reportable segment; no operating income is reported for it",
+  "source": "New",
+  "tier": "comparative"
+ }
+]
