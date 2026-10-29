@@ -22,6 +22,8 @@ from .text_utils import tokenize
 def index_text(c: dict) -> str:
     period = f"{c['fiscal_period']}{c['fiscal_year']}" if c["fiscal_period"] != "FY" else f"FY{c['fiscal_year']}"
     head = f"{c['company']} ({c['ticker']}) {c['form']} {period} | {c['section']} {c['section_title']}".strip()
+    if c.get("context_header"):  # optional sub-heading (chunking variant E); embedded/indexed only, never returned
+        head += f" | {c['context_header']}"
     return f"{head}\n{c['text']}"
 
 
