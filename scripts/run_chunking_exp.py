@@ -8,6 +8,9 @@ gold = eval/gold_v0_msft.jsonl (anchored on `contains` strings, so it is valid f
     # BM25-only smoke run (no torch): --embedder lsa --methods bm25
 
 Writes eval/results/chunking_exp_<ts>/{summary.csv, per_question.csv, paired_vs_A.csv, report.md}
+
+k sweep (how many results the Agent puts in its context):
+    python scripts/run_chunking_exp.py --tokenizer <tok> --variants C1,C2 --methods hybrid --filters filtered --ks 3,5,8,10
 """
 from __future__ import annotations
 
@@ -28,7 +31,7 @@ from rag.evaluate import evidence_hits, load_gold, score_question  # noqa: E402
 from rag.index import build_index  # noqa: E402
 from rag.retrieve import Retriever  # noqa: E402
 
-KS = (5, 10)
+DEFAULT_KS = "5,10"  # must include 5 (paired comparison and report columns use @5)
 PARENT_CAP = 1500  # max tokens of one parent handed to the Agent
 CHILD_POOL = 30    # children fetched to fill 5 distinct parents
 
@@ -99,8 +102,12 @@ def main():
     ap.add_argument("--filters", default="filtered,unfiltered")
     ap.add_argument("--gold", default="eval/gold_v0_msft.jsonl")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--ks", default=DEFAULT_KS, help="comma-separated k values, e.g. 3,5,8,10 (must include 5)")
     a = ap.parse_args()
 
+    ks = tuple(sorted({int(x) for x in a.ks.split(",")}))
+    if 5 not in ks or max(ks) > CHILD_POOL:
+        ap.error(f"--ks must include 5 and stay <= {CHILD_POOL}")
     tok = Tok(a.tokenizer)
     chunks_a = [json.loads(l) for l in open(ROOT / a.chunks_a)]
     gold = load_gold(ROOT / a.gold, True)
@@ -130,15 +137,16 @@ def main():
             for m in methods:
                 for q in gold:
                     resp = r.search(q["question"], filters=q.get("filters") if fm == "filtered" else None, top_k=CHILD_POOL, method=m)
-                    s = score_question(q, resp["results"][: max(KS)], KS)
-                    s.update(parent_scores(q, resp["results"], pmap, tok))
-                    top5_tokens = sum(x["metadata"].get("n_tokens") or 0 for x in resp["results"][:5])
+                    s = score_question(q, resp["results"][: max(ks)], ks)
+                    for k in ks:
+                        s.update(parent_scores(q, resp["results"], pmap, tok, k))
+                        s[f"child_top{k}_tokens"] = sum(x["metadata"].get("n_tokens") or 0 for x in resp["results"][:k])
                     per_q.append({"variant": v, "filters": fm, "method": m, "qid": q["qid"], "tier": q.get("tier"),
-                                  "qtype": "table" if q["qid"] in tq else "text", "top5_tokens": top5_tokens, **s})
+                                  "qtype": "table" if q["qid"] in tq else "text", "top5_tokens": s["child_top5_tokens"], **s})
         print(f"[exp] {v} done: {builds[v]}")
 
     # ---- summary ----
-    keys = [k for k in per_q[0] if k.startswith(("evidence_recall", "hit", "mrr", "parent_"))]
+    keys = [k for k in per_q[0] if k.startswith(("evidence_recall", "hit", "mrr", "parent_", "child_top"))]
     groups = collections.defaultdict(list)
     for r in per_q:
         groups[(r["variant"], r["filters"], r["method"])].append(r)
@@ -185,6 +193,13 @@ def main():
         lines += ["", "## Paired vs A (recall@5, per question)", "", "| variant | filters | method | wins | losses | ties | mean Δ |", "|---|---|---|---|---|---|---|"]
         lines += [f"| {p['variant']} | {p['filters']} | {p['method']} | {p['wins']} | {p['losses']} | {p['ties']} | {p['mean_delta_recall@5']} |"
                   for p in sorted(paired, key=lambda p: (p["filters"], p["method"], p["variant"]))]
+    lines += ["", "## k sweep (what the Agent puts in its context)", "",
+              "Child = top-k retrieved chunks. Parent = top-k distinct parents (small-to-big, deduplicated). Tokens = bge-small tokens, mean per question.", "",
+              "| variant | filters | method | k | child recall@k | child tokens | parent recall@k | parent tokens |", "|---|---|---|---|---|---|---|---|"]
+    for s in sorted(summary, key=lambda s: (s["filters"], s["method"], s["variant"])):
+        for k in ks:
+            lines.append(f"| {s['variant']} | {s['filters']} | {s['method']} | {k} | {s.get(f'evidence_recall@{k}')} | "
+                         f"{round(s[f'child_top{k}_tokens'])} | {s[f'parent_recall@{k}']} | {round(s[f'parent_top{k}_tokens'])} |")
     lines += ["", f"Noise note: {len(gold)} questions -> one question ≈ {1/len(gold):.3f}; treat |Δ| < ~0.07 as noise."]
     (out / "report.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
