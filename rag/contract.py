@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any, TypedDict
 
-CONTRACT_VERSION = "v0"
+CONTRACT_VERSION = "v1"  # v1 = v0 + optional metadata keys and trace_id; nothing removed or renamed
 
 DEFAULT_TOP_K = 10
 MAX_TOP_K = 50
@@ -93,7 +93,18 @@ METADATA_KEYS = {
     "bm25_rank",          # int | None (hybrid only)
     "dense_rank",         # int | None (hybrid only)
     "request_id",         # str  joins the result to logs/retrieval.jsonl
+    # ---- v1 additions: present only when the index carries them; consumers must use .get() ----
+    "trace_id",           # str  the caller's trace_id, echoed unchanged (joins RAG to Agent / GraphRAG traces)
+    "section_id",         # str  Data's stable section id; survives re-chunking (chunk_id does not)
+    "section_path",       # str  readable breadcrumb, e.g. "Part I Item 1 > Financial Statements > Revenue by geography"
+    "table_id",           # str  id of the whole table this chunk belongs to (tables only)
+    "table_name",         # str  table caption, e.g. "Revenue, classified by the major geographic areas" (tables only)
+    "parent_id",          # str  id of the parent context unit (whole table, or neighbouring text in the section)
+    "parent_text",        # str  parent context for the reader; cite the chunk `text`, read the parent
+    "first_stage_rank",   # int  rank before the optional reranker (only when a reranker is enabled)
 }
+
+TRACE_ID_MAX = 128
 
 
 # ---------------------------------------------------------------- normalizers
@@ -178,6 +189,15 @@ def validate_query(query: Any) -> str:
     if not isinstance(query, str) or not query.strip():
         raise ValueError("query must be a non-empty string")
     return query
+
+
+def validate_trace_id(trace_id: Any) -> str | None:
+    """Optional caller-supplied correlation id, echoed in every result's metadata and in the logs."""
+    if trace_id is None:
+        return None
+    if not isinstance(trace_id, str) or not trace_id.strip() or len(trace_id) > TRACE_ID_MAX:
+        raise ValueError(f"trace_id must be a non-empty string of at most {TRACE_ID_MAX} characters")
+    return trace_id
 
 
 def validate_top_k(top_k: Any) -> int:

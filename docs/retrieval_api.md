@@ -1,6 +1,6 @@
-# Retrieval API Contract v0
+# Retrieval API Contract v1
 
-**Status:** Final v0. Proposed for team sign-off on 2026-10-08.
+**Status:** v1, 2026-10-29. Additive over v0 (signed off 2026-10-08): every v0 field, filter and error is unchanged, so v0 consumers keep working without edits. §16 lists what v1 adds.
 **Owner:** RAG team
 **Enforced by:** `rag/contract.py` (schema and validation) and `tests/test_contract.py`. The conformance tests run against both the real retriever and the Agent mock.
 **Consumers:** Agent, Evaluation, UI, Data Engineering.
@@ -19,6 +19,7 @@ def retrieve(
     query: str,
     filters: dict | None = None,
     top_k: int = 10,
+    trace_id: str | None = None,   # v1
 ) -> list[RetrievedChunk]:
     ...
 ```
@@ -27,7 +28,8 @@ def retrieve(
 |---|---|---|---|---|
 | `query` | `str` | yes | — | Non-empty after stripping whitespace. The Agent may pass a rewritten query. |
 | `filters` | `dict \| None` | no | `None` | Metadata filters, applied **before** ranking (§3). |
-| `top_k` | `int` | no | `10` | `1 ≤ top_k ≤ 50`. `bool` is rejected. |
+| `top_k` | `int` | no | `10` | `1 ≤ top_k ≤ 50`. `bool` is rejected. The Agent uses 8 (Gold v1 knee). |
+| `trace_id` | `str \| None` | no | `None` | **v1.** The caller's trace / correlation ID (e.g. the LangGraph run ID). Non-empty, at most 128 characters, otherwise `ValueError`. Echoed in `metadata.trace_id` and in `logs/retrieval.jsonl`. |
 
 `retrieve()` **does**: locate evidence, rank chunks, and return the exact chunk text with provenance.
 `retrieve()` **does not**: generate answers, perform calculations, judge correctness, rewrite or summarize chunk text, or hide retrieved evidence.
@@ -172,6 +174,18 @@ Consumers must read these keys with `.get()` and must not depend on any key not 
 | `retrieval_backend` | `str` | `custom` / `chroma`; enables like-for-like architecture comparisons |
 | `bm25_rank`, `dense_rank` | `int \| None` | component ranks (hybrid only, for error analysis) |
 | `request_id` | `str` | joins this result to `logs/retrieval.jsonl` |
+| `first_stage_rank` | `int \| None` | rank before the optional reranker (only when reranking is on; off by default) |
+| `trace_id` | `str` | **v1.** the caller's `trace_id`, present only when one was passed |
+| `section_id` | `str` | **v1.** Data Engineering's section ID for the chunk's section |
+| `section_path` | `str` | **v1.** readable breadcrumb, e.g. `"Part I Item 1 > Note 16 — Segment Information > Revenue by segment"`. Built from section, section title and table name; empty, `Unlabeled` and repeated parts are skipped |
+| `table_id` | `str` | **v1.** table chunks only: ID of the source table, shared by all pieces of one table |
+| `table_name` | `str` | **v1.** table chunks only: the table's caption as printed (max 160 characters) |
+| `parent_id` | `str` | **v1.** ID of the parent context (`table_id` for a whole table, `win:<chunk_ids>` for a text window) |
+| `parent_text` | `str` | **v1.** parent context for small-to-big reading: the whole table if it fits 1,500 tokens, else the chunk; for text, previous + this + next chunk of the same section, shrunk to fit. `text` is always contained in it. Cite `text`/`chunk_id`, read `parent_text` |
+
+v1 keys appear **only when the index carries them** (indexes built with `build_chunk_variant.py --with-parents`). A v0 index returns exactly the v0 keys. Consumers must keep using `.get()`.
+
+`score` is comparable only within one call of this tool. It is not comparable with scores from GraphRAG, SQL or any other tool, or across calls.
 
 Reserved for v0.x, to be added once Data Engineering provides them (additive, so no new contract version is needed): `char_start`, `char_end` (offsets in the source text), `source_sha256`, and `source_locator` (XPath).
 
@@ -269,7 +283,7 @@ Every result carries `chunk_id, section, ticker, cik, company_name, form, access
 
 ## 14. Versioning
 
-This document is contract **v0**, and `rag.contract.CONTRACT_VERSION == "v0"`.
+This document is contract **v1**, and `rag.contract.CONTRACT_VERSION == "v1"`. v1 is additive only (§16); it carries its own number because it adds a call parameter (`trace_id`) and the teams asked to refer to it by name.
 
 **Breaking changes require v1 and a heads-up to all consumer teams.** These include renaming or removing a top-level field, changing filter semantics, changing the return type, or changing error behavior.
 
@@ -285,3 +299,18 @@ This document is contract **v0**, and `rag.contract.CONTRACT_VERSION == "v0"`.
 - [ ] Evaluation confirms metrics in §10.
 - [ ] Data Engineering confirms the field sources and answers DE-1..4.
 - [ ] Review comments from at least three groups resolved.
+
+---
+
+## 16. v1 changes (2026-10-29)
+
+| Change | Why | Effect on consumers |
+|---|---|---|
+| `trace_id` parameter on `retrieve()`, `Retriever.search()`, the Chroma backend and the mock; echoed in `metadata.trace_id`, the `search()` envelope and the log row | Agents asked for end-to-end trace IDs (10/29 sync) | none unless passed |
+| `section_id`, `section_path` | GraphRAG and UI asked for a section breadcrumb (View Sources) | optional keys |
+| `table_id`, `table_name` | tables are cited by name; groups the pieces of one table | optional keys |
+| `parent_id`, `parent_text` | small-to-big context: Gold v1 recall 0.852 → 0.890 at the same ~2.6k tokens | optional keys; the Agent passes `parent_text` to the reader instead of `text` |
+| LangSmith retriever span `rag.retrieve` (`rag/observability.py`) | the call shows up nested inside the Agent's LangGraph trace with query, filters, index_version, backend, trace_id and the returned documents (`parent_text` left out) | only when `LANGSMITH_TRACING=true` and `langsmith` is installed; otherwise a no-op |
+| Explicit note that `score` is not comparable across tools | GraphRAG gap doc | documentation only |
+
+Not in v1: abstention signal (to be agreed with Evaluation and GraphRAG), structured numeric facts (separate SQL tool, see the routing proposal), `char_start`/`char_end`.

@@ -65,6 +65,12 @@ def _flat_metadata(chunk: dict) -> dict:
         "source_url": chunk.get("source_url"),
         "chunking_version": chunk.get("chunking_version") or "unversioned",
         "extraction_version": chunk.get("extraction_version") or "unversioned",
+        # contract v1 optional fields
+        "section_id": chunk.get("section_id"),
+        "table_id": chunk.get("table_id"),
+        "table_name": chunk.get("table_name"),
+        "parent_id": chunk.get("parent_id"),
+        "parent_text": chunk.get("parent_text"),
     }
     return {k: v for k, v in values.items() if v is not None and v != ""}
 
@@ -93,6 +99,7 @@ def _stored_chunk(chunk_id: str, document: str, metadata: dict) -> dict:
         "source_url": metadata.get("source_url", ""),
         "chunking_version": metadata.get("chunking_version", "unversioned"),
         "extraction_version": metadata.get("extraction_version", "unversioned"),
+        **{k: metadata[k] for k in ("section_id", "table_id", "table_name", "parent_id", "parent_text") if metadata.get(k)},
     }
 
 
@@ -279,12 +286,15 @@ class ChromaRetriever:
         filters: dict | None = None,
         top_k: int = DEFAULT_TOP_K,
         method: str | None = None,
+        trace_id: str | None = None,
     ) -> dict:
+        from .contract import validate_trace_id
         from .retrieve import rrf, to_contract
 
         started = time.perf_counter()
         validate_query(query)
         validate_top_k(top_k)
+        validate_trace_id(trace_id)
         nf = normalize_filters(filters)
         method = method or self.method
         if method not in METHODS:
@@ -322,12 +332,14 @@ class ChromaRetriever:
                 rank,
                 score,
                 self.meta["index_version"],
-                {"retrieval_method": method, "retrieval_backend": "chroma", "request_id": request_id, **debug.get(doc, {})},
+                {"retrieval_method": method, "retrieval_backend": "chroma", "request_id": request_id,
+                 **({"trace_id": trace_id} if trace_id else {}), **debug.get(doc, {})},
             )
             for rank, (doc, score) in enumerate(scored[:top_k], start=1)
         ]
         response = {
             "request_id": request_id,
+            "trace_id": trace_id,
             "query": query,
             "filters": filters or {},
             "method": method,
@@ -350,7 +362,7 @@ class ChromaRetriever:
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
             **{
                 key: response[key]
-                for key in ("request_id", "query", "filters", "method", "backend", "top_k", "latency_ms", "index_version")
+                for key in ("request_id", "trace_id", "query", "filters", "method", "backend", "top_k", "latency_ms", "index_version")
             },
             "query_embedding_tokens": response["tokens"]["query_embedding"],
             "n_candidates": n_candidates,

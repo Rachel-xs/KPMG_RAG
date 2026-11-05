@@ -27,7 +27,15 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from rag.parents import attach_parents  # noqa: E402
 from rag.tables import parse_section, render, split_table  # noqa: E402
+
+
+def table_name(table) -> str | None:
+    """Caption of a parsed table as one line (contract v1 `table_name`), e.g. 'INCOME STATEMENTS'."""
+    cap = " · ".join(" ".join(x.split()) for x in (table.caption or []) if x.strip())
+    cap = cap.rstrip(":").strip()
+    return (cap[:157] + "...") if len(cap) > 160 else (cap or None)
 
 META_KEYS = ("ticker", "cik", "company", "form", "fiscal_year", "fiscal_period", "period_of_report", "filing_date",
              "accession", "section", "section_title", "section_type", "section_id", "source_url", "source_sha256",
@@ -196,13 +204,15 @@ def build(chunks: list[dict], variant: str, tok: Tok, max_tokens: int, parents: 
 
         recs = []
         for t, s, e in texts:
-            recs.append({"text": t, "is_table": False, "start": s, "end": e, "table_id": None})
+            recs.append({"text": t, "is_table": False, "start": s, "end": e, "table_id": None, "table_name": None})
         for ti, b in enumerate(tables):
             tid = f"{meta['section_id']}-t{ti:02d}"
             if parents is not None:
                 parents[tid] = render(b["table"], fmt)
+            tname = table_name(b["table"])
             for piece in split_table(b["table"], tok.n, max_tokens, fmt):
-                recs.append({"text": piece, "is_table": True, "start": b["start"], "end": b["end"], "table_id": tid})
+                recs.append({"text": piece, "is_table": True, "start": b["start"], "end": b["end"], "table_id": tid,
+                             "table_name": tname})
         recs.sort(key=lambda r: (r["start"], r["is_table"]))
         for r in recs:
             acc = meta["accession"]
@@ -217,6 +227,7 @@ def build(chunks: list[dict], variant: str, tok: Tok, max_tokens: int, parents: 
                 **meta,
                 "is_table": r["is_table"],
                 "table_id": r["table_id"],
+                **({"table_name": r["table_name"]} if r["table_name"] else {}),
                 "parent_chunk_id": r["table_id"],  # schema v1 optional field; tables: the whole table is the parent (variant F)
                 "seq": seq,
                 "n_tokens": tok.n(r["text"]),
@@ -236,11 +247,16 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--tokenizer", required=True, help="bge-small tokenizer.json")
     ap.add_argument("--max-tokens", type=int, default=460, help="body token budget per chunk")
+    ap.add_argument("--with-parents", action="store_true",
+                    help="contract v1: store parent_id / parent_text on every chunk (small-to-big context)")
     a = ap.parse_args()
 
     tok = Tok(a.tokenizer)
     chunks = [json.loads(l) for l in open(a.inp)]
-    out = build(chunks, a.variant, tok, a.max_tokens)
+    tables: dict = {}
+    out = build(chunks, a.variant, tok, a.max_tokens, tables)
+    if a.with_parents:
+        attach_parents(out, tables, tok.n)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w") as f:
         for r in out:
