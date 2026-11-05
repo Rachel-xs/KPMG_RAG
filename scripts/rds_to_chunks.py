@@ -20,13 +20,13 @@ TABLE_HINT = re.compile(r"(\n[^\n]*\d[\d,]{2,}[^\n]*){3,}")  # >=3 lines carryin
 
 def section_key(row):
     """'Part I Item 2' style key when the title has an Item number, else Data's section_type."""
-    title = (row.get("original_title") or "").strip()
+    title = (row.get("original_title") or row.get("section_title") or "").strip()
     m = re.search(r"item\s*(\d{1,2}[a-c]?)", title, re.I)
     if m:
         part = re.search(r"part\s+(iv|iii|ii|i)\b", title, re.I)
         num = m.group(1).upper()
         return (f"Part {part.group(1).upper()} Item {num}" if part and row["form"].startswith("10-Q") else f"Item {num}")
-    return row.get("section_type") or "Unlabeled"
+    return row.get("section_type") or row.get("section_key") or row.get("section") or "Unlabeled"
 
 
 def main():
@@ -50,7 +50,9 @@ def main():
             "chunk_id": r["chunk_id"],
             "ticker": r["ticker"] or f"CIK{r['cik']}",
             "cik": int(r["cik"]),
-            "company": r["company_name"],
+            # Some Data exports omit company_name because ticker/CIK already identify
+            # the issuer. Keep the adapter usable with that canonical export shape.
+            "company": r.get("company_name") or r.get("company") or r["ticker"],
             "form": r["form"],
             "fiscal_year": fy,
             "fiscal_period": fp,
@@ -58,8 +60,8 @@ def main():
             "filing_date": r["filing_date"][:10],
             "accession": r["accession_number"],
             "section": section_key(r),
-            "section_title": r.get("original_title") or "",
-            "section_type": r.get("section_type") or None,
+            "section_title": r.get("original_title") or r.get("section_title") or "",
+            "section_type": r.get("section_type") or r.get("section") or None,
             "section_id": r.get("section_id") or None,
             "is_table": bool(TABLE_HINT.search(text)),
             "seq": int(r["chunk_index"]),
@@ -70,6 +72,10 @@ def main():
             "offset_end": int(r["offset_end"]),
             "chunking_version": r.get("chunking_version") or "",
             "extraction_version": r.get("extraction_version") or "",
+            "processing_set_id": r.get("processing_set_id") or None,
+            "processing_set": r.get("set_key") or None,
+            "filing_id": r.get("filing_id") or None,
+            "report_id": r.get("report_id") or None,
             "text": text,
         })
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)

@@ -8,6 +8,11 @@ data/chunks/
 data/index/
 data/chroma/
 data/cache/
+# Controlled comparison artifacts are rebuilt from the approved snapshot and
+# shared outside Git rather than committed to the repository.
+data/chunks_C1/
+data/index_C1/
+data/chroma_C1/
 logs/
 eval/results/
 .DS_Store
