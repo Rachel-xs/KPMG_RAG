@@ -173,3 +173,23 @@ def test_evidence_item_chunk_ids_are_any_of():
     mk = lambda cid, t, txt: {"chunk_id": cid, "text": txt, "ticker": t, "metadata": {}}  # noqa: E731
     s = score_question(q, [mk("b", "Y", "z"), mk("c", "X", "rev up")], ks=(2,))
     assert s["evidence_recall@2"] == 1.0 and s["mrr"] == 1.0
+
+
+# ---------- v1: trace_id (both implementations) ----------
+def test_trace_id_is_echoed(impl):
+    fn, q, _, _ = impl
+    res = fn(q, top_k=3, trace_id="agent-run-42")
+    assert res and all(r["metadata"]["trace_id"] == "agent-run-42" for r in res)
+    validate_results(res, 3)
+
+
+def test_trace_id_absent_by_default(impl):
+    fn, q, _, _ = impl
+    assert all("trace_id" not in r["metadata"] for r in fn(q, top_k=3))
+
+
+@pytest.mark.parametrize("bad", ["", "   ", 7, "x" * 129])
+def test_bad_trace_id(impl, bad):
+    fn, q, _, _ = impl
+    with pytest.raises(ValueError):
+        fn(q, top_k=3, trace_id=bad)

@@ -29,34 +29,16 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from build_chunk_variant import Tok, build  # noqa: E402
 from rag.evaluate import evidence_hits, load_gold, score_question  # noqa: E402
 from rag.index import build_index  # noqa: E402
+from rag.parents import parent_map as _parent_map  # noqa: E402
 from rag.retrieve import Retriever  # noqa: E402
 
 DEFAULT_KS = "5,10"  # must include 5 (paired comparison and report columns use @5)
-PARENT_CAP = 1500  # max tokens of one parent handed to the Agent
-CHILD_POOL = 30    # children fetched to fill 5 distinct parents
+CHILD_POOL = 30    # children fetched to fill k distinct parents
 
 
 def parent_map(chunks: list[dict], tables: dict, tok: Tok) -> dict:
-    """chunk_id -> (parent_id, parent_text). Table piece -> whole table (if <= PARENT_CAP tokens, else the piece);
-    text chunk -> previous + itself + next text chunk of the same section, shrunk until <= PARENT_CAP."""
-    out = {}
-    by_sec = collections.defaultdict(list)
-    for c in chunks:
-        if c.get("is_table") and c.get("table_id") in tables:
-            whole = tables[c["table_id"]]
-            out[c["chunk_id"]] = (c["table_id"], whole) if tok.n(whole) <= PARENT_CAP else (c["chunk_id"], c["text"])
-        else:
-            by_sec[(c.get("accession"), c.get("section_id"))].append(c)
-    for cs in by_sec.values():
-        cs.sort(key=lambda c: c["seq"])
-        for i, c in enumerate(cs):
-            for lo, hi in ((i - 1, i + 2), (i, i + 2), (i, i + 1)):
-                win = cs[max(0, lo) : hi]
-                text = "\n\n".join(x["text"] for x in win)
-                if tok.n(text) <= PARENT_CAP or hi - lo == 1:
-                    out[c["chunk_id"]] = ("win:" + "|".join(x["chunk_id"] for x in win), text)
-                    break
-    return out
+    """chunk_id -> (parent_id, parent_text); shared with the index build (rag/parents.py)."""
+    return _parent_map(chunks, tables, tok.n)
 
 
 def parent_scores(q: dict, results: list[dict], pmap: dict, tok: Tok, k: int = 5) -> dict:

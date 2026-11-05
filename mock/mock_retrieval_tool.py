@@ -212,8 +212,8 @@ def _mock_score(query, passage):
 
 
 # ------------------------------------------------------------------ public API
-def retrieve(query, filters=None, top_k=DEFAULT_TOP_K):
-    """Retrieval API Contract v0 (mock).
+def retrieve(query, filters=None, top_k=DEFAULT_TOP_K, trace_id=None):
+    """Retrieval API Contract v1 (mock): v0 + optional `trace_id`, echoed as metadata.trace_id.
 
     Returns list[RetrievedChunk] ordered by score desc, then chunk_id asc; [] if nothing matches.
     Raises ValueError for invalid query / top_k / filters.
@@ -224,6 +224,8 @@ def retrieve(query, filters=None, top_k=DEFAULT_TOP_K):
         raise ValueError("top_k must be a positive integer")
     if top_k > MAX_TOP_K:
         raise ValueError(f"top_k must be <= {MAX_TOP_K}")
+    if trace_id is not None and (not isinstance(trace_id, str) or not trace_id.strip() or len(trace_id) > 128):
+        raise ValueError("trace_id must be a non-empty string of at most 128 characters")
     nf = _normalize_filters(filters)
 
     rows = [{**_FILING, **_FISCAL, **c} for c in MOCK_CHUNKS]
@@ -257,6 +259,7 @@ def retrieve(query, filters=None, top_k=DEFAULT_TOP_K):
                 "fiscal_period": r["fiscal_period"],
                 "is_table": r["is_table"],
                 "retrieval_method": "mock_keyword_overlap",
+                **({"trace_id": trace_id} if trace_id else {}),
             },
         })
     return results

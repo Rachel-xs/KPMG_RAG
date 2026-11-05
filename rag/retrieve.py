@@ -35,8 +35,10 @@ from .contract import (
     normalize_filters,
     validate_query,
     validate_top_k,
+    validate_trace_id,
 )
 from .embed import load_embedder
+from .observability import traced_retriever
 from .index import index_text  # noqa: F401  (re-exported for convenience)
 from .text_utils import tokenize
 
@@ -67,8 +69,21 @@ def _filter_fields(c: dict) -> dict:
     }
 
 
+V1_PASSTHROUGH = ("section_id", "table_id", "table_name", "parent_id", "parent_text")
+
+
+def section_path(c: dict) -> str | None:
+    """'Part I Item 1 > ITEM 1. FINANCIAL STATEMENTS > Revenue by geography' (skips empty / repeated parts)."""
+    parts = []
+    for p in (c.get("section"), c.get("section_title"), c.get("table_name")):
+        p = (p or "").strip()
+        if p and p != "Unlabeled" and p.lower() not in {x.lower() for x in parts}:
+            parts.append(p)
+    return " > ".join(parts) or None
+
+
 def to_contract(c: dict, rank: int, score: float, index_version: str, extra_meta: dict | None = None) -> RetrievedChunk:
-    """Map a stored chunk record (rag.chunk format) to the v0 RetrievedChunk schema."""
+    """Map a stored chunk record (rag.chunk format) to the RetrievedChunk schema (v1: v0 + optional metadata)."""
     meta = {
         "section_title": c.get("section_title") or None,
         "fiscal_year": c.get("fiscal_year"),
@@ -76,6 +91,12 @@ def to_contract(c: dict, rank: int, score: float, index_version: str, extra_meta
         "is_table": bool(c.get("is_table", False)),
         "n_tokens": c.get("n_tokens"),
     }
+    # v1 optional keys: only when the index carries them, so v0 indexes return exactly what they did before
+    meta.update({k: c[k] for k in V1_PASSTHROUGH if c.get(k)})
+    if c.get("section_id") or c.get("table_name"):
+        sp = section_path(c)
+        if sp:
+            meta["section_path"] = sp
     meta.update(extra_meta or {})
     section = c.get("section")
     return {
@@ -142,7 +163,7 @@ class Retriever:
         return self.search(query, filters, top_k, self.method)["results"]
 
     def search(self, query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K, method: str | None = None,
-               rerank: bool | None = None) -> dict:
+               rerank: bool | None = None, trace_id: str | None = None) -> dict:
         """Envelope for eval/debugging: {request_id, index_version, latency_ms, warnings, results: [RetrievedChunk]}.
 
         rerank=None uses the reranker if this Retriever has one; False forces first-stage order (for A/B runs).
@@ -150,6 +171,7 @@ class Retriever:
         t0 = time.perf_counter()
         validate_query(query)
         validate_top_k(top_k)
+        validate_trace_id(trace_id)
         nf = normalize_filters(filters)
         method = method or self.method
         if method not in METHODS:
@@ -199,11 +221,13 @@ class Retriever:
         iv = self.meta["index_version"]
         results = [
             to_contract(self.chunks[d], rank, s, iv,
-                        {"retrieval_method": method_label, "retrieval_backend": "custom", "request_id": request_id, **dbg.get(d, {})})
+                        {"retrieval_method": method_label, "retrieval_backend": "custom", "request_id": request_id,
+                         **({"trace_id": trace_id} if trace_id else {}), **dbg.get(d, {})})
             for rank, (d, s) in enumerate(scored[:top_k], start=1)
         ]
         resp = {
             "request_id": request_id,
+            "trace_id": trace_id,
             "query": query,
             "filters": filters or {},
             "method": method_label,
@@ -225,7 +249,7 @@ class Retriever:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         row = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            **{k: resp[k] for k in ("request_id", "query", "filters", "method", "backend", "top_k", "latency_ms", "index_version")},
+            **{k: resp[k] for k in ("request_id", "trace_id", "query", "filters", "method", "backend", "top_k", "latency_ms", "index_version")},
             "query_embedding_tokens": resp["tokens"]["query_embedding"],
             "n_candidates": n_candidates,
             "chunk_ids": [r["chunk_id"] for r in resp["results"]],
@@ -300,8 +324,10 @@ def _default_retriever():
     return _DEFAULT
 
 
-def retrieve(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K) -> list[RetrievedChunk]:
-    """Retrieval API Contract v0.
+@traced_retriever
+def retrieve(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K,
+             trace_id: str | None = None) -> list[RetrievedChunk]:
+    """Retrieval API Contract v1 (v0 + optional `trace_id`, echoed as metadata.trace_id).
 
     Returns up to `top_k` chunks ranked by relevance (score desc, then chunk_id asc); [] if nothing matches.
     Raises ValueError for invalid input; RetrievalUnavailableError if the index cannot be loaded.
@@ -310,5 +336,7 @@ def retrieve(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K
     """
     validate_query(query)
     validate_top_k(top_k)
+    validate_trace_id(trace_id)
     normalize_filters(filters)
-    return _default_retriever().retrieve(query, filters, top_k)
+    r = _default_retriever()
+    return r.search(query, filters, top_k, trace_id=trace_id)["results"]
