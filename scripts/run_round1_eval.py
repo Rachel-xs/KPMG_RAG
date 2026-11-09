@@ -223,10 +223,12 @@ def main():
         h["number_distractor_shown@8"] = rate(groups["number"], pre + "distractor_shown@8")
         summary["headline"][m] = h
     summary["headline"]["hybrid_nofilter"] = {f"all_scored_strict@{k}": rate(scored, f"hybrid_nofilter_strict@{k}") for k in KS}
-    for r in scored:
-        for t in r["tickers"].split("|"):
-            summary["by_company"].setdefault(t, []).append(r)
+    for r in scored:  # a question naming several companies counts once, under "multi-company"
+        t = r["tickers"].split("|")
+        summary["by_company"].setdefault(t[0] if len(t) == 1 else "multi-company", []).append(r)
         summary["by_type"].setdefault(r["type"], []).append(r)
+    summary["non_msft_single_company"] = rate([r for r in scored if r["tickers"] not in ("MSFT",) and "|" not in r["tickers"]],
+                                              "hybrid_filtered_strict@10")
     for d in ("by_company", "by_type"):
         summary[d] = {k: {"n": len(v), "strict@10": rate(v, "hybrid_filtered_strict@10"),
                           "loose@10": rate(v, "hybrid_filtered_loose@10")} for k, v in sorted(summary[d].items())}
@@ -259,6 +261,7 @@ def main():
                       f"{f(h[f'number_loose@{k}'])} | {f(h[f'prose_strict@{k}'])} |")
     md += ["", "Hybrid without filters, all scored, strict: " +
            ", ".join(f"@{k} {f(summary['headline']['hybrid_nofilter'][f'all_scored_strict@{k}'])}" for k in KS), "",
+           f"Non-MSFT single-company questions (hybrid, filtered, strict@10): {f(summary['non_msft_single_company'])}", "",
            "## By company (hybrid, filtered, k=10)", "", "| ticker | n | strict | loose |", "|---|---|---|---|"]
     md += [f"| {t} | {v['n']} | {f(v['strict@10'])} | {f(v['loose@10'])} |" for t, v in summary["by_company"].items()]
     md += ["", "## By question type (hybrid, filtered, k=10)", "", "| type | n | strict | loose |", "|---|---|---|---|"]
