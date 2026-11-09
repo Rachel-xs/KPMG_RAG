@@ -16,3 +16,6 @@ data/chroma_C1/
 logs/
 eval/results/
 .DS_Store
+
+# Database exports stay off GitHub (Data request)
+exports/
