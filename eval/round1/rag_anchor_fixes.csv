@@ -1,0 +1,38 @@
+qid,action,rag_anchor,rag_n_chunks,suggested_anchor,suggested_n_chunks,why
+GSv0-MSFT-001,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+GSv0-MSFT-002,narrow,"31,778",7,"Net income available for common shareholders (A) | 31,778",1,value appears in 7 chunks (several tables)
+EV1-001,narrow,"38,398",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-002,narrow,"114,634",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-003,narrow,"97,983",7,"Net income available for common shareholders (A) | 97,983",1,value appears in 7 chunks (several tables)
+EV1-004,narrow,4.27,4,Diluted earnings per share | 4.27,2,value appears in 4 chunks (several tables)
+GSv0-MSFT-013,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+EV1-026,narrow,"38,398",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-026,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+EV1-027,narrow,"38,398 | 32,000",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-027,narrow,"82,886 | 70,066",6,add the table row label,,value appears in 6 chunks (several tables)
+EV1-028,narrow,"82,886 | 70,066",6,add the table row label,,value appears in 6 chunks (several tables)
+EV1-029,narrow,"31,778 | 25,824",7,"Net income available for common shareholders (A) | 31,778 | 25,824",1,value appears in 7 chunks (several tables)
+EV1-030,narrow,"241,832 | 205,283",6,"Total revenue | 241,832 | 205,283",1,value appears in 6 chunks (several tables)
+EV1-031,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+EV1-036,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+GSv0-MSFT-025,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+EV1-037,narrow,"241,832",6,"Total revenue | 241,832",1,value appears in 6 chunks (several tables)
+EV1-038,narrow,"114,634",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-039,narrow,"97,983",7,"Net income available for common shareholders (A) | 97,983",1,value appears in 7 chunks (several tables)
+GSv0-MSFT-023,remove,"authorized 24,000; outstanding 7,429",0,,,matches no chunk; a share-count string carried over from Gold v0 that is not evidence for this question (1 other anchors remain)
+GSv0-MSFT-024,narrow,"82,886",6,"Total revenue | 82,886",1,value appears in 6 chunks (several tables)
+EV1-040,narrow,"38,398",4,add the table row label,,value appears in 4 chunks (several tables)
+EV1-042,narrow,"97,983",7,"Net income available for common shareholders (A) | 97,983",1,value appears in 7 chunks (several tables)
+GSv0-MSFT-030,remove,"authorized 24,000; outstanding 7,429",0,,,matches no chunk; a share-count string carried over from Gold v0 that is not evidence for this question (2 other anchors remain)
+EV1-051,drop,,,,,"uses AMZN, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-052,drop,,,,,"uses META, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-053,drop,,,,,"uses NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-054,drop,,,,,"uses AMZN, META, NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-055,drop,,,,,"uses AMZN, META, NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-056,drop,,,,,"uses AMZN, META, NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-057,drop,,,,,"uses AMZN, META, NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-058,drop,,,,,"uses NVDA, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-059,drop,,,,,"uses AMZN, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-060,drop,,,,,"uses META, not in Data's 10 companies (scope is now Data's 10 companies)"
+EV1-068,narrow,"82,886",6,"Total revenue | 82,886 | 70,066",1,value appears in 6 chunks (several tables)
+EV1-069,narrow,"97,983",7,"Net income available for common shareholders (A) | 97,983",1,value appears in 7 chunks (several tables)
