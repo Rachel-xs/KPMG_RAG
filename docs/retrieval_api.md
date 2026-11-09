@@ -314,3 +314,28 @@ This document is contract **v1**, and `rag.contract.CONTRACT_VERSION == "v1"`. v
 | Explicit note that `score` is not comparable across tools | GraphRAG gap doc | documentation only |
 
 Not in v1: abstention signal (to be agreed with Evaluation and GraphRAG), structured numeric facts (separate SQL tool, see the routing proposal), `char_start`/`char_end`.
+
+## 17. v1.1 changes (2026-11-09): evidence check
+
+| Change | Why | Effect on consumers |
+|---|---|---|
+| `search()` envelope gains `evidence_status` (`ok` / `weak` / `empty`), `weak_reasons` and `evidence_checks` (custom and Chroma backends) | Mentor asked for a "weak result" signal so the Agent can fall back to GraphRAG. Round 1 showed RRF scores cannot be thresholded: median top-1 ≈ 0.032 and top-1/top-2 margin ≈ 0.0007 for hits, misses and unanswerable questions alike | additive fields; `retrieve()` and `RetrievedChunk` unchanged |
+| New `retrieve_with_status(query, filters, top_k, trace_id)` returning `{results, evidence_status, weak_reasons, evidence_checks, warnings, request_id, trace_id}` | the Agent needs the status without switching to the debug envelope | opt-in; `retrieve()` stays the v1 entry point |
+
+`weak_reasons` (no score threshold; checks in `rag/evidence.py`):
+
+| reason | fires when | status |
+|---|---|---|
+| `filter_no_match` | the filters match no chunk (e.g. a filing outside the snapshot) | `empty` |
+| `no_results` | the filters match chunks but nothing is returned | `empty` |
+| `multi_target` | the filters list several tickers, forms, fiscal years or periods; split the query instead | `weak` |
+| `entity_missing` | a ticker, fiscal year or fiscal period from the filters is absent from the results | `weak` |
+| `methods_disagree` | hybrid only: BM25 top 10 and dense top 10 share no chunk (`evidence_checks.bm25_dense_overlap@10` = 0) | `weak` |
+
+Round 1 validation (Gold Set v2, `scripts/run_round1_diag.py`): the check marks 2/105 hits, 7/19 misses, 3/10 unanswerable and
+5/11 Exhibit 21 questions as not `ok`. A looser `methods_disagree` (overlap ≤ 2) would flag 16% of hits. It catches only 3/10
+unanswerable questions, so abstention still needs the Agent's own evidence-sufficiency check; this signal is one input to it.
+
+Tested and not adopted: `rrf_k` 20. It helps at k=10 on Gold v2 (0.847 → 0.871) but is slightly worse at k=8 on both sets
+(Gold v1 0.834 → 0.823, Gold v2 0.815 → 0.806), and the Agent tool uses top_k=8. Recommended instead: top_k=10, which
+gains on both sets with the current `rrf_k` 60 (Gold v1 0.834 → 0.857, Gold v2 0.815 → 0.847).

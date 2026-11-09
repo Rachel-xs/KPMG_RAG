@@ -289,6 +289,7 @@ class ChromaRetriever:
         trace_id: str | None = None,
     ) -> dict:
         from .contract import validate_trace_id
+        from .evidence import assess, methods_overlap
         from .retrieve import rrf, to_contract
 
         started = time.perf_counter()
@@ -305,6 +306,7 @@ class ChromaRetriever:
         idx = np.flatnonzero(self._mask(nf))
         scored: list[tuple[int, float]] = []
         debug: dict[int, dict] = {}
+        overlap = None
         if len(idx) == 0:
             warnings.append("No chunks match the filters.")
         elif method == "bm25":
@@ -317,6 +319,7 @@ class ChromaRetriever:
             bm25_order, _ = self._rank_bm25(query, idx)
             dense_order, _, tokens = self._rank_dense(query, nf, top_k)
             scored = list(rrf([bm25_order, dense_order], self.rrf_k).items())
+            overlap = methods_overlap(bm25_order, dense_order)
             bm25_pos = {doc: rank for rank, doc in enumerate(bm25_order, 1)}
             dense_pos = {doc: rank for rank, doc in enumerate(dense_order, 1)}
             debug = {
@@ -349,6 +352,7 @@ class ChromaRetriever:
             "latency_ms": round((time.perf_counter() - started) * 1000, 2),
             "tokens": {"query_embedding": tokens},
             "warnings": warnings,
+            **assess(nf, results, len(idx), overlap),
             "results": results,
         }
         self._log(response, n_candidates=len(idx))
