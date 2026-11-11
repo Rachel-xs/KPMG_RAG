@@ -34,7 +34,7 @@ retrieval:
   # "openai:<model>" = OpenAI embeddings (needs OPENAI_API_KEY)
   # "lsa"          = TF-IDF + SVD, offline smoke-test only (NOT a real dense baseline)
   embedder: "st:BAAI/bge-small-en-v1.5"
-  rrf_k: 60
+  rrf_k: 60   # rrf_k 20 tested 11/9: +3 on Gold v2 @10 but slightly worse @8 on Gold v1 and v2; kept 60
   candidate_k: 100
 
 generation:

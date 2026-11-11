@@ -26,6 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .evidence import assess, methods_overlap
 from .contract import (
     DEFAULT_TOP_K,
     RetrievalUnavailableError,
@@ -182,6 +183,7 @@ class Retriever:
         idx = np.flatnonzero(self._mask(nf))
         scored: list[tuple[int, float]] = []
         dbg: dict[int, dict] = {}
+        overlap = None
 
         if len(idx) == 0:
             warnings.append("No chunks match the filters.")
@@ -195,6 +197,7 @@ class Retriever:
             b_order, _ = self._rank_bm25(query, idx)
             d_order, _, tokens = self._rank_dense(query, idx)
             scored = list(rrf([b_order, d_order], self.rrf_k).items())
+            overlap = methods_overlap(b_order, d_order)
             b_pos = {d: r for r, d in enumerate(b_order, 1)}
             d_pos = {d: r for r, d in enumerate(d_order, 1)}
             dbg = {d: {"bm25_rank": b_pos.get(d), "dense_rank": d_pos.get(d)} for d, _ in scored}
@@ -238,6 +241,7 @@ class Retriever:
             "latency_ms": round((time.perf_counter() - t0) * 1000, 2),
             "tokens": {"query_embedding": tokens},
             "warnings": warnings,
+            **assess(nf, results, len(idx), overlap),
             "results": results,
         }
         self._log(resp, n_candidates=len(idx))
@@ -340,3 +344,20 @@ def retrieve(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K
     normalize_filters(filters)
     r = _default_retriever()
     return r.search(query, filters, top_k, trace_id=trace_id)["results"]
+
+
+def retrieve_with_status(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K,
+                         trace_id: str | None = None) -> dict:
+    """Contract v1.1: same search as `retrieve()`, plus the structural evidence check.
+
+    Returns {"results": [RetrievedChunk], "evidence_status": "ok" | "weak" | "empty",
+             "weak_reasons": [...], "evidence_checks": {...}, "warnings": [...], "request_id", "trace_id"}.
+    `retrieve()` is unchanged; callers that want the fallback signal use this function.
+    """
+    validate_query(query)
+    validate_top_k(top_k)
+    validate_trace_id(trace_id)
+    normalize_filters(filters)
+    resp = _default_retriever().search(query, filters, top_k, trace_id=trace_id)
+    return {k: resp[k] for k in ("results", "evidence_status", "weak_reasons", "evidence_checks", "warnings",
+                                 "request_id", "trace_id")}
