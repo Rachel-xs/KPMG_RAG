@@ -15,6 +15,8 @@ so it can use period words like "Three Months Ended" that only appear in the hea
 """
 from __future__ import annotations
 
+import os
+
 from typing import Protocol, Sequence
 
 
@@ -29,7 +31,7 @@ class CrossEncoderReranker:
         from sentence_transformers import CrossEncoder  # heavy import, keep lazy
 
         self.spec = f"st:{model_name}"
-        self.model = CrossEncoder(model_name, max_length=max_length)
+        self.model = CrossEncoder(model_name, max_length=max_length, device=os.environ.get("RAG_DEVICE", "cpu"))
         self.batch_size = batch_size
 
     def score(self, query: str, passages: Sequence[str]) -> list[float]:

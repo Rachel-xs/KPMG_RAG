@@ -38,7 +38,9 @@ class SentenceTransformerEmbedder(Embedder):
 
         self.spec = f"st:{model_name}"
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
+        # CPU by default: newer PyTorch builds crash on Apple MPS on some macOS versions, and CPU keeps
+        # query embeddings identical across machines. bge-small is fast on CPU. Override with RAG_DEVICE=mps|cuda.
+        self.model = SentenceTransformer(model_name, device=os.environ.get("RAG_DEVICE", "cpu"))
 
     def _prefix(self, is_query: bool) -> str:
         name = self.model_name.lower()

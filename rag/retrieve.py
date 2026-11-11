@@ -361,3 +361,22 @@ def retrieve_with_status(query: str, filters: dict | None = None, top_k: int = D
     resp = _default_retriever().search(query, filters, top_k, trace_id=trace_id)
     return {k: resp[k] for k in ("results", "evidence_status", "weak_reasons", "evidence_checks", "warnings",
                                  "request_id", "trace_id")}
+
+
+def retrieve_multi(query: str, filters: dict | None = None, top_k: int = DEFAULT_TOP_K, trace_id: str | None = None,
+                   subqueries: list[dict] | None = None, top_k_each: int | None = None) -> dict:
+    """Contract v1.2: one search per target, merged (see rag/multi.py).
+
+    Same call as `retrieve_with_status()`. When the filters list several tickers, forms, fiscal years or
+    fiscal periods (the `multi_target` case), it runs one sub-search per combination with `top_k_each` results
+    each (default: top_k for up to 3 targets, else 5) and merges them round robin. Otherwise it is one search.
+    Pass `subqueries=[{"query", "filters", "label"}]` to choose the split yourself (e.g. different wording per filing).
+
+    Returns {"results", "subqueries", "skipped", "evidence_status", "weak_reasons", "warnings", "trace_id",
+             "top_k_each"}; every result has metadata.subquery and metadata.subquery_rank.
+    """
+    from .multi import multi_search
+
+    validate_top_k(top_k)
+    return multi_search(_default_retriever().search, query, filters, top_k, trace_id=trace_id,
+                        subqueries=subqueries, top_k_each=top_k_each)

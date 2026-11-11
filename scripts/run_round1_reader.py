@@ -32,6 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT), str(ROOT / "scripts"), str(ROOT / "eval" / "vendor")]
 from rag.config import load_config  # noqa: E402  (also loads .env)
+from rag.multi import multi_search, split_filters  # noqa: E402
 from run_round1_eval import kind as retrieval_kind, score as retrieval_score  # noqa: E402
 from kpmg_eval.metrics.numeric import naa_summary, score_numeric  # noqa: E402
 from kpmg_eval.metrics.premise import classify_premise, premise_summary  # noqa: E402
@@ -113,9 +114,14 @@ class Reader:
                     raise SystemExit("OPENAI_API_KEY is not set: add OPENAI_API_KEY=sk-... to .env in the repo root")
                 self.client = OpenAI()
             t0 = time.perf_counter()
-            resp = self.client.chat.completions.create(
-                model=self.model, temperature=0, response_format={"type": "json_object"},
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+            kw = dict(model=self.model, response_format={"type": "json_object"},
+                      messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+            try:
+                resp = self.client.chat.completions.create(temperature=0, **kw)
+            except Exception as e:  # newer reasoning models only accept the default temperature
+                if "temperature" not in str(e):
+                    raise
+                resp = self.client.chat.completions.create(**kw)
             d = {"key": key, "model": self.model, "prompt": self.prompt, "raw": resp.choices[0].message.content,
                  "prompt_tokens": resp.usage.prompt_tokens, "completion_tokens": resp.usage.completion_tokens,
                  "latency_ms": round((time.perf_counter() - t0) * 1000)}
@@ -196,6 +202,8 @@ def main():
     ap.add_argument("--qids", default=None, help="comma-separated question ids")
     ap.add_argument("--price-in", type=float, default=None, help="USD per 1M input tokens (default: config.yaml)")
     ap.add_argument("--price-out", type=float, default=None)
+    ap.add_argument("--multi", action="store_true",
+                    help="multi-target questions use retrieve_multi (contract v1.2): one search per company / filing")
     ap.add_argument("--dry-run", action="store_true", help="retrieve and build prompts, no API calls")
     ap.add_argument("--out", default="eval/results/round1/reader")
     a = ap.parse_args()
@@ -214,7 +222,7 @@ def main():
     if a.limit:
         gold = gold[: a.limit]
 
-    tag = f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "")
+    tag = f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
@@ -225,7 +233,13 @@ def main():
     for i, q in enumerate(gold, 1):
         g = group(q)
         trace_id = f"round1-reader-{q['qid']}"
-        env = retr.search(q["question"], filters=q.get("filters") or None, top_k=a.top_k, method=a.method, trace_id=trace_id)
+        if a.multi and len(split_filters(q.get("filters"))) > 1:
+            env = multi_search(lambda qq, f, k, trace_id=None: retr.search(qq, filters=f, top_k=k, method=a.method,
+                                                                            trace_id=trace_id),
+                               q["question"], q.get("filters"), top_k=a.top_k, trace_id=trace_id)
+        else:
+            env = retr.search(q["question"], filters=q.get("filters") or None, top_k=a.top_k, method=a.method,
+                              trace_id=trace_id)
         res = env["results"]
         ans = reader(q["question"], fmt_context(res, a.parent)) if res else \
             {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
@@ -233,13 +247,14 @@ def main():
         row = {"qid": q["qid"], "group": g, "type": q["type"], "tickers": "|".join(q["tickers"]),
                "question": q["question"], "gold": q["answer"].get("display"),
                "evidence_status": env.get("evidence_status"), "weak_reasons": "|".join(env.get("weak_reasons") or []),
-               "n_results": len(res), "answered": block["answered"], "answer_text": block["answer_text"],
+               "n_results": len(res), "multi": "subqueries" in env, "answered": block["answered"], "answer_text": block["answer_text"],
                "value_text": block.get("value_text"), "period_end": block.get("period_end"),
                "cited_chunks": "|".join(c["id"] for c in block["citations"])}
         if not ans.get("_dry"):
             row.update(grade(q, g, block))
         if g in ("number", "ntap_10q_excluded") and retrieval_kind(q) in ("number", "ntap_10q_excluded"):
-            row["retrieved_all_figures"] = retrieval_score(q, res).get(f"strict@{a.top_k}")
+            k = max(len(res), 1)
+            row["retrieved_all_figures"] = retrieval_score(q, res, ks=(k,)).get(f"strict@{k}")
         if row.get("passed") is False and row.get("retrieved_all_figures") is not None:
             row["error_source"] = "reading" if row["retrieved_all_figures"] else "retrieval"
         rows.append(row)
@@ -263,7 +278,7 @@ def main():
     hit_ret = [r for r in nums if r.get("retrieved_all_figures")]
     summary = {
         "model": model, "prompt": a.prompt, "top_k": a.top_k, "method": a.method, "parent_text": a.parent,
-        "index": a.index, "gold": a.gold, "n_questions": len(rows), "groups": {k: len(v) for k, v in by.items() if v},
+        "multi": a.multi, "index": a.index, "gold": a.gold, "n_questions": len(rows), "groups": {k: len(v) for k, v in by.items() if v},
         "numbers": {**naa,
                     "errors_by_source": dict(Counter(r.get("error_source") for r in miss)),
                     "accuracy_when_retrieved": (sum(r["passed"] for r in hit_ret) / len(hit_ret)) if hit_ret else None,
