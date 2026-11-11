@@ -113,9 +113,14 @@ class Reader:
                     raise SystemExit("OPENAI_API_KEY is not set: add OPENAI_API_KEY=sk-... to .env in the repo root")
                 self.client = OpenAI()
             t0 = time.perf_counter()
-            resp = self.client.chat.completions.create(
-                model=self.model, temperature=0, response_format={"type": "json_object"},
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+            kw = dict(model=self.model, response_format={"type": "json_object"},
+                      messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+            try:
+                resp = self.client.chat.completions.create(temperature=0, **kw)
+            except Exception as e:  # newer reasoning models only accept the default temperature
+                if "temperature" not in str(e):
+                    raise
+                resp = self.client.chat.completions.create(**kw)
             d = {"key": key, "model": self.model, "prompt": self.prompt, "raw": resp.choices[0].message.content,
                  "prompt_tokens": resp.usage.prompt_tokens, "completion_tokens": resp.usage.completion_tokens,
                  "latency_ms": round((time.perf_counter() - t0) * 1000)}
