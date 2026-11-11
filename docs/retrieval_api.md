@@ -339,3 +339,29 @@ unanswerable questions, so abstention still needs the Agent's own evidence-suffi
 Tested and not adopted: `rrf_k` 20. It helps at k=10 on Gold v2 (0.847 → 0.871) but is slightly worse at k=8 on both sets
 (Gold v1 0.834 → 0.823, Gold v2 0.815 → 0.806), and the Agent tool uses top_k=8. Recommended instead: top_k=10, which
 gains on both sets with the current `rrf_k` 60 (Gold v1 0.834 → 0.857, Gold v2 0.815 → 0.847).
+
+## 18. v1.2 changes (2026-11-11): retrieve_multi
+
+| Change | Why | Effect on consumers |
+|---|---|---|
+| New `retrieve_multi(query, filters, top_k, trace_id, subqueries=None, top_k_each=None)` (`rag/multi.py`) | Round 1: 6 of the 19 retrieval misses need several filings at once (cross-company rankings EV2-040/042/043; 10-K + 10-Q derived figures EV1-037/038, EV2-045). One search lets the strongest filing crowd the rest out of the top k. v1.1 flags these as `multi_target`; v1.2 answers them | opt-in; `retrieve()` and `retrieve_with_status()` unchanged |
+
+**Splitting.** Each of `ticker`, `form`, `fiscal_year`, `fiscal_period` whose filter lists more than one value is split; one
+sub-search per combination (at most 20), other filter keys kept. Without such a list it is exactly one search, identical to
+`retrieve_with_status()`. Callers can pass their own `subqueries=[{"query", "filters", "label"}]` instead.
+
+**Depth.** `top_k_each` results per sub-search; default `top_k` for up to 3 targets, else 5 (ten companies → up to 50 chunks).
+
+**Merging.** Round robin by rank (every target's #1, then every #2, ...); duplicates kept once. Each result gets
+`metadata.subquery` (e.g. `"ticker=AAPL"`) and `metadata.subquery_rank`; `rank` is renumbered 1..n.
+
+**Status.** `evidence_status` is `ok` only if every sub-search is `ok`; `empty` if nothing is returned. `weak_reasons` are
+prefixed with the sub-search label (`"ticker=MU:entity_missing"`). A combination that matches no filing (e.g. a 10-K with
+`fiscal_period` Q3) is listed under `skipped` and in `warnings`, and does not make the result weak.
+
+Returns `{results, subqueries: [{label, query, filters, n_results, evidence_status, weak_reasons, request_id}], skipped,
+evidence_status, weak_reasons, warnings, trace_id, top_k_each}`.
+
+**When the Agent should call it:** whenever `retrieve_with_status()` returns `multi_target`, or directly for questions that
+compare companies or combine a 10-K with a 10-Q. For a derived Q4, filters such as
+`{"ticker": "MSFT", "fiscal_year": 2026, "fiscal_period": ["FY", "Q3"]}` give one 10-K and one 10-Q sub-search.

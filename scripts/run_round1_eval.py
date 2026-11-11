@@ -2,8 +2,10 @@
 
     python scripts/run_round1_eval.py --index data/round1/index_C1
 
-Inputs (pinned copies from thomassong0604-oss/kpmg-eval @ 41823f9, Week 8):
-    eval/round1/benchmark_v2.jsonl      Gold Set v2
+Inputs (pinned copies from thomassong0604-oss/kpmg-eval, Week 8):
+    eval/round1/benchmark_v2.jsonl      Gold Set v2 (@ 41823f9; the 11/9 run)
+    eval/round1/benchmark_v2_1.jsonl    Gold Set v2.1 (@ e224deb): same questions and answers, 25 re-anchored prose
+                                        items (--gold eval/round1/benchmark_v2_1.jsonl)
     eval/round1/rag_anchor_fixes.csv    Eval's fixes to our Gold v1 anchors (narrow / remove / drop)
 
 Scoring (same rules as Eval's scripts/run_side_by_side.py, plus a stricter variant):
@@ -33,6 +35,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+from rag.multi import multi_search, split_filters  # noqa: E402
 from rag.retrieve import Retriever  # noqa: E402
 
 KS = (5, 8, 10)
@@ -114,17 +117,35 @@ def acc(r: dict) -> str:
     return r.get("accession_number") or r.get("accession") or ""
 
 
-def ev_hits(e: dict, r: dict) -> bool:
+def same_filing(e: dict, r: dict) -> bool:
     for key in ("ticker", "form", "accession"):
         got = acc(r) if key == "accession" else r.get(key)
         if e.get(key) and str(got or "") != str(e[key]):
             return False
+    return True
+
+
+def ev_hits(e: dict, r: dict) -> bool:
+    if not same_filing(e, r):
+        return False
     t = norm(r.get("text") or "")
     return all(norm(c) in t for c in e["contains"])
 
 
+# Gold v2.1 re-anchored items list one sentence per required point; the points may sit in different chunks,
+# so (as in Eval's run_side_by_side.py) each string must appear in some top-k chunk of the right filing.
+SPREAD_SOURCES = ("eval_w8_review", "sec_r_page_pending_round1_chunks")
+
+
+def ev_found(e: dict, top: list[dict]) -> bool:
+    if e.get("anchor_source") in SPREAD_SOURCES:
+        blob = norm(" ".join(r.get("text") or "" for r in top if same_filing(e, r)))
+        return all(norm(c) in blob for c in e["contains"])
+    return any(ev_hits(e, r) for r in top)
+
+
 # ------------------------------------------------------------------ scoring
-def score(q: dict, res: list[dict]) -> dict:
+def score(q: dict, res: list[dict], ks: tuple = KS) -> dict:
     k_ = kind(q)
     out = {"n_returned": len(res)}
     if res:
@@ -132,7 +153,7 @@ def score(q: dict, res: list[dict]) -> dict:
         out["top1_score"] = round(s[0], 5)
         out["top1_margin"] = round(s[0] - s[1], 5) if len(s) > 1 else None
     gold_acc = {f["accession"] for f in q.get("facts") or []} | {e.get("accession") for e in q.get("rag_evidence") or [] if e.get("accession")}
-    for k in KS:
+    for k in ks:
         top = res[:k]
         if k_ in ("number", "ntap_10q_excluded") and q.get("facts") and q["answer_type"] == "exact_numeric":
             blob = norm(" ".join(r["text"] for r in top))
@@ -146,7 +167,7 @@ def score(q: dict, res: list[dict]) -> dict:
         evs = q.get("rag_evidence") or []
         anchored = [e for e in evs if e["contains"]]
         if anchored and k_ != "unanswerable":
-            sat = sum(any(ev_hits(e, r) for r in top) for e in anchored)
+            sat = sum(ev_found(e, top) for e in anchored)
             out[f"anchor_recall@{k}"] = round(sat / len(anchored), 4)
             if k_ == "anchored_prose":
                 blob = norm(" ".join(r["text"] for r in top))
@@ -171,6 +192,8 @@ def main():
     ap.add_argument("--fixes", default="eval/round1/rag_anchor_fixes.csv")
     ap.add_argument("--methods", default="hybrid,bm25,dense")
     ap.add_argument("--out", default="eval/results/round1")
+    ap.add_argument("--multi", action="store_true",
+                    help="also run retrieve_multi (contract v1.2) on multi-target questions and compare")
     a = ap.parse_args()
 
     gold = [json.loads(l) for l in open(ROOT / a.gold, encoding="utf-8")]
@@ -199,6 +222,15 @@ def main():
                     row[f"{m}_{flt_name}_{key}"] = val
                 if flt_name == "filtered" and m == "hybrid":
                     row["filter_warning"] = "; ".join(env.get("warnings") or [])
+        if a.multi and len(split_filters(q.get("filters"))) > 1:
+            env = multi_search(lambda qq, f, k, trace_id=None: retr.search(qq, filters=f, top_k=k, method="hybrid"),
+                               q["question"], q.get("filters"), top_k=max(KS))
+            res = env["results"]
+            sc = score(q, res, ks=(max(len(res), 1),))
+            row["multi_n_results"] = len(res)
+            row["multi_strict"] = sc.get(f"strict@{max(len(res), 1)}")
+            row["multi_loose"] = sc.get(f"loose@{max(len(res), 1)}")
+            row["multi_status"] = env["evidence_status"]
         rows.append(row)
 
     groups = defaultdict(list)
@@ -273,6 +305,15 @@ def main():
            f"Excluded (NetApp 10-Q not in round 1): {', '.join(summary['ntap_10q_excluded'])}",
            f"Left to GraphRAG (Exhibit 21 relationship questions, exhibits not indexed): {', '.join(summary['graph_route_excluded'])}",
            f"Anchor fixes applied: {dict(fix_counts)}"]
+    multi_rows = [r for r in rows if "multi_n_results" in r]
+    if multi_rows:
+        summary["multi"] = {r["qid"]: {"single_strict@10": r.get("hybrid_filtered_strict@10"), "multi_strict": r["multi_strict"],
+                                       "multi_n_results": r["multi_n_results"], "status": r["multi_status"]} for r in multi_rows}
+        json.dump(summary, open(out / "summary.json", "w"), indent=1, ensure_ascii=False)
+        md += ["", "## retrieve_multi on multi-target questions (hybrid, filtered)", "",
+               "| qid | kind | single search strict@10 | retrieve_multi strict (all merged) | chunks | status |", "|---|---|---|---|---|---|"]
+        md += [f"| {r['qid']} | {r['kind']} | {r.get('hybrid_filtered_strict@10')} | {r['multi_strict']} | {r['multi_n_results']} | {r['multi_status']} |"
+               for r in multi_rows]
     (out / "summary.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
     print(f"\nWrote {out}/summary.md, summary.json, per_question.csv, gold_v2_rag.jsonl")
