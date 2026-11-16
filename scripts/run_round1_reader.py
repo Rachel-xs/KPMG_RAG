@@ -146,7 +146,10 @@ class Reader:
         self.cache = {}
         if cache_path.exists():
             for line in open(cache_path, encoding="utf-8"):
-                d = json.loads(line)
+                try:  # a run stopped with Ctrl+C may leave a half-written last line: skip it, that call is redone
+                    d = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
                 self.cache[d["key"]] = d
         self.client = None
         self.tokens = Counter()
