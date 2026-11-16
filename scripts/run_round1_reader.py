@@ -72,8 +72,37 @@ JSON_SPEC = """Return JSON only:
  "cites": [1, 3]}                   // excerpt numbers used"""
 
 
+# final_v2 output spec (11/16), from Eval's round-1 asks:
+#  - "answered" is false only when nothing in the excerpts answers the question (GSv0-MSFT-023 and EV1R-005 stated
+#    their answers but came back answered=false);
+#  - "values" lists every figure a multi-part question asks for (Eval's optional AnswerBlock field, graded sign-sensitive).
+JSON_SPEC_V2 = JSON_SPEC.replace(
+    '{"answered": true|false,            // false = the excerpts do not contain the answer',
+    '{"answered": true|false,            // false ONLY if nothing in the excerpts answers the question. If you state\n'
+    '                                   // any requested figure or fact, correct a false premise, or compute a result,\n'
+    '                                   // answered is true, and answer_text says what is missing, if anything').replace(
+    ' "cites": [1, 3]}                   // excerpt numbers used',
+    ' "values": [{"label": "...", "value": number, "unit": "...", "value_text": "..."}],\n'
+    '                                   // every figure a multi-part question asks for (one entry each, signed: a\n'
+    '                                   // decrease is negative); [] for single-figure or non-numeric answers\n'
+    ' "cites": [1, 3]}                   // excerpt numbers used')
+assert JSON_SPEC_V2.count("ONLY if nothing") == 1 and '"values"' in JSON_SPEC_V2
+SPECS = {"v1": JSON_SPEC, "v2": JSON_SPEC_V2}
+
+
 # dev experiment (11/16): Eval's narrative judge found answers that state the main point but drop secondary required
 # points; JSON_SPEC caps answer_text at one or two sentences. For narrative-type questions only, allow a fuller answer.
+def long_spec(spec: str) -> str:
+    """The narrative variant of an output spec: up to 5 sentences covering every reason / component asked for."""
+    out = spec.replace(
+        '"answer_text": "...",              // one or two sentences',
+        '"answer_text": "...",              // for an explanation, comparison or definition: up to 5 sentences that state\n'
+        '                                   // every distinct reason, component, segment or figure the question asks for;\n'
+        '                                   // every claim must come from the excerpts (no outside knowledge)')
+    assert out != spec
+    return out
+
+
 JSON_SPEC_LONG = JSON_SPEC.replace(
     '"answer_text": "...",              // one or two sentences',
     '"answer_text": "...",              // for an explanation, comparison or definition: up to 5 sentences that state\n'
@@ -182,6 +211,8 @@ def apply_preset(a, p: dict) -> None:
     a.index, a.top_k, a.method = p["index"]["dir"], p["retrieval"]["top_k"], p["retrieval"]["method"]
     a.multi, a.parent = bool(p["retrieval"]["multi"]), bool(p["retrieval"].get("parent_text", False))
     a.model, a.prompt = p["reader"]["model"], p["reader"]["prompt"]
+    a.spec = p["reader"].get("spec", "v1")
+    a.narrative_long = bool(p["reader"].get("narrative_long", False)) or getattr(a, "narrative_long", False)
     prices = p.get("prices_usd_per_1m") or {}
     a.price_in = a.price_in if a.price_in is not None else prices.get("input")
     a.price_out = a.price_out if a.price_out is not None else prices.get("output")
@@ -216,6 +247,10 @@ def to_block(q: dict, ans: dict, results: list[dict], trace_id: str) -> dict:
          "citations": [{"id": results[c - 1]["chunk_id"], "source": "vector_rag",
                         "accession": results[c - 1]["accession_number"], "section": results[c - 1].get("section") or ""}
                        for c in cites]}
+    vals = [v for v in ans.get("values") or [] if isinstance(v, dict) and isinstance(v.get("value"), (int, float))]
+    if vals:
+        b["values"] = [{"label": v.get("label") or "", "value": float(v["value"]), "unit": v.get("unit"),
+                        "value_text": v.get("value_text")} for v in vals]
     if ans.get("error"):
         b["error"] = ans["error"]
     if not b["answered"]:
@@ -263,6 +298,8 @@ def main():
     ap.add_argument("--narrative-variant", default=None, choices=["rrf", "union", "neighbors", "union+neighbors"],
                     help="dev experiments only: retrieval variant (rag/narrative.py) for narrative / categorical / "
                          "false-premise questions, chosen by the Gold answer_type; other questions unchanged")
+    ap.add_argument("--spec", choices=sorted(SPECS), default="v1",
+                    help="output spec: v1 = final_v1's; v2 = answered only false when nothing answers + values list")
     ap.add_argument("--narrative-long", action="store_true",
                     help="dev experiments only: narrative / categorical / false-premise questions may answer in up to 5 "
                          "sentences covering every reason or component (JSON_SPEC_LONG); number questions unchanged")
@@ -289,7 +326,8 @@ def main():
         gold = gold[: a.limit]
 
     # a preset plus an experiment is no longer the preset: label it as a dev experiment
-    tag = ("dev_" if (a.narrative_variant or a.narrative_long) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
+    from_preset = bool(preset) and preset["reader"].get("narrative_long", False) == a.narrative_long
+    tag = ("dev_" if (a.narrative_variant or (a.narrative_long and not from_preset) or (a.spec != "v1" and not preset)) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
         + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
         + ("_narr-long" if a.narrative_long else "")
     base = ROOT / a.out
@@ -320,7 +358,8 @@ def main():
         retrieval_ms = round((time.perf_counter() - t_ret) * 1000, 1)
         res = env["results"]
         reader.last = {}
-        spec = JSON_SPEC_LONG if (a.narrative_long and g in ("narrative", "categorical", "false_premise")) else None
+        base_spec = SPECS[a.spec]
+        spec = long_spec(base_spec) if (a.narrative_long and g in ("narrative", "categorical", "false_premise")) else base_spec
         ans = reader(q["question"], fmt_context(res, a.parent), spec) if res else \
             {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
         block = to_block(q, ans, res, trace_id)
@@ -390,7 +429,7 @@ def main():
             "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
             "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
         },
-        "preset": a.preset, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long,
+        "preset": a.preset, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long, "spec": a.spec,
     }
 
     with open(out / "per_question.csv", "w", newline="", encoding="utf-8") as fh:

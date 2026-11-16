@@ -1,0 +1,39 @@
+# final_v2 CANDIDATE (11/16). Same retrieval and index as final_v1; reader output changes only, all chosen on the dev
+# set from Eval's 11/11 asks and Eval's narrative judge (docs: claude/week10-narrative-judge-1116.md):
+#   - narrative_long: narrative / categorical / false-premise answers may use up to 5 sentences covering every reason
+#     or component (dev judge: 17/30 -> 23/30, 6 better / 0 worse, McNemar p = 0.031, no unsupported claims added)
+#   - spec v2: "answered" is false only when nothing answers; "values" lists each figure of a multi-part answer
+# Not adopted: the "union" retrieval variant (better retrieval, same answer quality).
+# Becomes frozen only when tagged final_v2 (after the 11/18 blind scoring and a full dev run); holdout batch B tests it once.
+name: final_v2
+frozen_on: null          # set when tagged
+frozen_at_commit: null              # set when tagged
+
+index:
+  dir: data/round1/index_C1
+  index_version: 7a7ad9801f86      # the reader refuses to run if the index differs
+  chunking: rag-C1-v0-m460         # C1 @ 460 tokens, tables kept whole
+  embedder: "st:BAAI/bge-small-en-v1.5"
+  corpus: 20 frozen Round 1 filings, 10 companies (NTAP 10-Q excluded until Data releases it)
+
+retrieval:
+  method: hybrid                   # BM25 + dense, RRF
+  rrf_k: 60
+  candidate_k: 100
+  top_k: 15
+  multi: true                      # retrieve_multi() when filters name several companies / forms / periods
+  reranker: none
+  parent_text: false
+
+reader:
+  model: gpt-6.1-terra
+  prompt: v2                       # period-first prompt (unchanged)
+  spec: v2                         # answered only false when nothing answers; values list
+  narrative_long: true             # narrative-type questions: up to 5 sentences
+  temperature: 0                   # falls back to the model default if the model rejects it
+
+prices_usd_per_1m:                 # third-party price page, 11/11; confirm with PM
+  input: 1.0
+  output: 5.0
+
+dev_result: null                   # filled after the full dev run
