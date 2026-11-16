@@ -41,7 +41,7 @@ LABEL = {  # plain metric names, independent of any filing's wording
 }
 COMPANY = {"AAPL": "Apple", "CASY": "Casey's", "MCK": "McKesson", "MDT": "Medtronic", "MSFT": "Microsoft",
            "MU": "Micron", "NKE": "Nike", "NTAP": "NetApp", "PH": "Parker-Hannifin", "TTWO": "Take-Two"}
-_SUFFIX = re.compile(r"[,.]?\s+(inc|incorporated|corp|corporation|co|company|plc|ltd|limited|holdings?|group|n\.?v|s\.?a)\.?$", re.I)
+_SUFFIX = re.compile(r"[,.]?\s+(inc|incorporated|corp|corporation|co|company|plc|ltd|limited|n\.?v|s\.?a)\.?$", re.I)
 MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December"]
 
@@ -67,7 +67,9 @@ def company_name(ticker: str, raw: str | None) -> str:
     for _ in range(2):
         n = _SUFFIX.sub("", n).strip(" ,.")
     if n.isupper():
-        n = " ".join(w if len(w) <= 3 and w.isalpha() and w not in ("THE", "AND") else w.capitalize() for w in n.split())
+        # keep acronyms (no vowel, e.g. CVS; or two letters) in capitals, title-case the rest
+        n = " ".join(w if (w.isalpha() and (len(w) <= 2 or not re.search(r"[AEIOUY]", w))) else w.capitalize()
+                     for w in n.split())
     return n
 
 
