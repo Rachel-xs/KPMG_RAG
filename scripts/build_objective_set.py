@@ -3,6 +3,7 @@
     python scripts/build_objective_set.py --set A      # 20 frozen Round 1 filings, 15 per company (150)
     python scripts/build_objective_set.py --set C      # companies outside the Round 1 ten, 1 per company (<= 100)
     python scripts/build_objective_set.py --set A --from-json exports/metric_rows.json   # offline, from a saved pull
+    python scripts/build_objective_set.py --set A --seed <private number>                # holder picks the seed
 
 Source: finance.metric_value (validation passed, status reported) joined to the table cell Data links to the fact.
 Output: eval/objective/<set>.jsonl in the Gold Set v2 format (Eval's grader scores it unchanged) plus
@@ -235,6 +236,8 @@ def main():
     ap.add_argument("--from-json", default=None, help="use a saved pull instead of querying the database")
     ap.add_argument("--save-pull", default="exports/metric_rows.json")
     ap.add_argument("--out", default="eval/objective")
+    ap.add_argument("--seed", type=int, default=SEED,
+                    help="sampling seed; whoever holds the set picks it and keeps it private (only a hash is logged)")
     a = ap.parse_args()
 
     if a.from_json:
@@ -249,7 +252,7 @@ def main():
         if isinstance(r.get("concept_names"), str):
             r["concept_names"] = r["concept_names"].strip("{}").split(",")
 
-    rng = random.Random(SEED)
+    rng = random.Random(a.seed)
     if a.set == "A":
         frozen = {r["accession_number"].strip() for r in csv.DictReader(open(ROOT / "eval/round1_filings.csv"))
                   if r.get("validation_status", "passed") == "passed"}
@@ -269,7 +272,9 @@ def main():
         commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
     except Exception:  # noqa: BLE001
         commit = None
-    manifest = {"set": a.set, "seed": SEED, "git_commit": commit, "rows_pulled": len(rows),
+    import hashlib
+    manifest = {"set": a.set, "seed_sha256": hashlib.sha256(str(a.seed).encode()).hexdigest()[:16],
+                "seed_is_default": a.seed == SEED, "git_commit": commit, "rows_pulled": len(rows),
                 "population_after_exclusions": len(pool), "exclusions": dict(excl), "n_questions": len(items),
                 "by_company": dict(Counter(it["tickers"][0] for it in items)),
                 "by_statement": dict(Counter(it["strata"]["statement"] for it in items)),
