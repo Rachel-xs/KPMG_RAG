@@ -73,20 +73,30 @@ JSON_SPEC = """Return JSON only:
 
 
 # final_v2 output spec (11/16), from Eval's round-1 asks:
-#  - "answered" is false only when nothing in the excerpts answers the question (GSv0-MSFT-023 and EV1R-005 stated
-#    their answers but came back answered=false);
+#  - "answered" follows Eval's decision policy (POLICY_answer_clarify_abstain.md): true when every requested figure
+#    or fact is stated and supported (GSv0-MSFT-023 stated its figure but came back answered=false); false (abstain)
+#    when any requested part is missing or the question asks for advice / a forecast. A first version ("false only if
+#    nothing answers", 11/16 run) turned partial answers into answers and blocked the Agent's fallback: replaced.
+#  - "decision": answer / abstain (Eval's optional AnswerBlock field);
 #  - "values" lists every figure a multi-part question asks for (Eval's optional AnswerBlock field, graded sign-sensitive).
 JSON_SPEC_V2 = JSON_SPEC.replace(
     '{"answered": true|false,            // false = the excerpts do not contain the answer',
-    '{"answered": true|false,            // false ONLY if nothing in the excerpts answers the question. If you state\n'
-    '                                   // any requested figure or fact, correct a false premise, or compute a result,\n'
-    '                                   // answered is true, and answer_text says what is missing, if anything').replace(
+    '{"answered": true|false,            // true = you answer what the question asks: every requested figure or fact is\n'
+    '                                   // stated and supported by the excerpts (correcting a false premise counts as an\n'
+    '                                   // answer); a note about extra context you could not find does not make it false.\n'
+    '                                   // false = abstain: any requested figure, company, period or list item is missing\n'
+    '                                   // from the excerpts, or the question asks for investment advice or a forecast;\n'
+    '                                   // answer_text then says what is missing and what is available\n'
+    ' "decision": "answer"|"abstain",   // same choice as answered').replace(
+    ' "value": number|null,              // headline number in base units (dollars, not millions); percent as e.g. 18.3',
+    ' "value": number|null,              // headline number in base units (dollars, not millions); percent as e.g. 18.3;\n'
+    '                                   // an amount spent, paid or repurchased is positive, as the question asks it').replace(
     ' "cites": [1, 3]}                   // excerpt numbers used',
     ' "values": [{"label": "...", "value": number, "unit": "...", "value_text": "..."}],\n'
-    '                                   // every figure a multi-part question asks for (one entry each, signed: a\n'
-    '                                   // decrease is negative); [] for single-figure or non-numeric answers\n'
+    '                                   // every figure a multi-part question asks for, one entry each; a CHANGE is signed\n'
+    '                                   // (a decrease is negative), amounts keep the sign the question asks; [] otherwise\n'
     ' "cites": [1, 3]}                   // excerpt numbers used')
-assert JSON_SPEC_V2.count("ONLY if nothing") == 1 and '"values"' in JSON_SPEC_V2
+assert JSON_SPEC_V2.count("true = you answer") == 1 and '"values"' in JSON_SPEC_V2 and "spent, paid" in JSON_SPEC_V2
 SPECS = {"v1": JSON_SPEC, "v2": JSON_SPEC_V2}
 
 
@@ -247,6 +257,8 @@ def to_block(q: dict, ans: dict, results: list[dict], trace_id: str) -> dict:
          "citations": [{"id": results[c - 1]["chunk_id"], "source": "vector_rag",
                         "accession": results[c - 1]["accession_number"], "section": results[c - 1].get("section") or ""}
                        for c in cites]}
+    if ans.get("decision") in ("answer", "abstain"):
+        b["decision"] = ans["decision"]
     vals = [v for v in ans.get("values") or [] if isinstance(v, dict) and isinstance(v.get("value"), (int, float))]
     if vals:
         b["values"] = [{"label": v.get("label") or "", "value": float(v["value"]), "unit": v.get("unit"),
@@ -329,7 +341,7 @@ def main():
     from_preset = bool(preset) and preset["reader"].get("narrative_long", False) == a.narrative_long
     tag = ("dev_" if (a.narrative_variant or (a.narrative_long and not from_preset) or (a.spec != "v1" and not preset)) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
         + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
-        + ("_narr-long" if a.narrative_long else "")
+        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
