@@ -57,7 +57,8 @@ def main():
         rows.append({"qid": q["qid"], "kind": kind(q),
                      "custom@10": bool(sc.get("strict@10")), "chroma@10": bool(sh.get("strict@10")),
                      f"custom@{a.k}": bool(sc.get(f"strict@{a.k}")), f"chroma@{a.k}": bool(sh.get(f"strict@{a.k}")),
-                     "overlap": round(len(set(lc) & set(lh)) / max(1, min(a.k, max(len(lc), len(lh)))), 3),
+                     # retrieve_multi can return more than k results: compare the full lists (Jaccard)
+                     "overlap": round(len(set(lc) & set(lh)) / max(1, len(set(lc) | set(lh))), 3),
                      "same_order_top5": lc[:5] == lh[:5]})
 
     summ = {"same_chunk_ids": same_chunks, "custom_chunks": len(ids_c), "chroma_chunks": len(ids_h), "k": a.k,
