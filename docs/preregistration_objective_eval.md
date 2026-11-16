@@ -53,6 +53,11 @@ Exclusions, applied before sampling and counted in the output:
 4. metric flagged `conflict` or `review_required`.
 
 ## Systems and runs
+- **Backend: every independent run (holdout A/B, sets A–E) uses Chroma** (`--backend chroma`), the backend the Agent
+  serves from. Decided 11/16 before any independent run, after `scripts/backend_parity_final.py` showed Chroma and the
+  custom index identical on dev at the final_v1 settings (same 3,736 chunks; identical top 5 on 127/127 questions;
+  identical strict hits @10 and @15) and an end-to-end final_v1 run on Chroma reproduced NAA 0.935 / BRAA 0.977
+  (154/155 reader contexts byte-identical).
 - `final_v1` exactly as tagged (`configs/final_v1.yaml`), reader gpt-6.1-terra. For B/C the only change is the
   index (`index_full`, same chunking C1@460, same embedder); recorded as `final_v1@full`.
 - Filters: ticker, form and the filing's reporting period end, which pin the same single filing as dev's
