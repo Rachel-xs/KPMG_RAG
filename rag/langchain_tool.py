@@ -111,3 +111,35 @@ def make_sec_retrieval_tool(name: str = TOOL_NAME, description: str = TOOL_DESCR
         args_schema=SecSearchArgs,
         response_format="content_and_artifact",
     )
+
+
+# ---------- v1.3 draft: deterministic pre-check as a tool ----------
+COVERAGE_TOOL_NAME = "sec_filing_coverage_check"
+COVERAGE_TOOL_DESCRIPTION = (
+    "Check, before searching, whether the SEC filings a question needs are in the database. Pass the companies "
+    "(names or tickers, typos are tolerated) and, if the question names them, forms, fiscal years, fiscal periods "
+    "(FY/Q1-Q4) or period-end dates (YYYY-MM-DD). Returns status all_hit / partial / none / unresolved / no_target, "
+    "the filings we have for each company, and a one-sentence message. If the status is none or unresolved, do not "
+    "search: tell the user what is not in the database and what is."
+)
+
+
+def make_coverage_tool():
+    """LangChain StructuredTool around rag.coverage.check_coverage (content: message + JSON; artifact: full dict)."""
+    import json as _json
+    from langchain_core.tools import StructuredTool
+    from .coverage import check_coverage
+
+    def _run(companies: list[str] | None = None, forms: list[str] | None = None,
+             fiscal_years: list[int] | None = None, fiscal_periods: list[str] | None = None,
+             period_ends: list[str] | None = None):
+        try:
+            r = check_coverage(companies=companies, forms=forms, fiscal_years=fiscal_years,
+                               fiscal_periods=fiscal_periods, period_ends=period_ends)
+        except ValueError as e:
+            return f"Invalid arguments: {e}", None
+        brief = {k: r[k] for k in ("status", "unresolved", "available")}
+        return r["message"] + "\n" + _json.dumps(brief), r
+
+    return StructuredTool.from_function(func=_run, name=COVERAGE_TOOL_NAME, description=COVERAGE_TOOL_DESCRIPTION,
+                                        response_format="content_and_artifact")

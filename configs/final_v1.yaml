@@ -1,0 +1,40 @@
+# Frozen RAG configuration for the holdout run and the final report (mentor 11/12: "a pure holdout set that
+# nothing in your tuning has ever seen"). Frozen 2026-11-16 at the settings that gave NAA 0.935 (87/93) on the
+# Gold Set v2 dev questions. Do not edit: a change after the holdout questions arrive invalidates the holdout.
+# Any new tuning gets a new file (final_v2.yaml) and is reported as tuned on dev, never on holdout.
+#
+#   python scripts/run_round1_reader.py --preset final_v1                          # dev set (all cached, $0)
+#   python scripts/run_round1_reader.py --preset final_v1 --gold <holdout.jsonl> --out eval/results/holdout
+name: final_v1
+frozen_on: "2026-11-16"
+frozen_at_commit: 531a258          # main after PR #19 (contract v1.2)
+
+index:
+  dir: data/round1/index_C1
+  index_version: 7a7ad9801f86      # the reader refuses to run if the index differs
+  chunking: rag-C1-v0-m460         # C1 @ 460 tokens, tables kept whole
+  embedder: "st:BAAI/bge-small-en-v1.5"
+  corpus: 20 frozen Round 1 filings, 10 companies (NTAP 10-Q excluded until Data releases it)
+
+retrieval:
+  method: hybrid                   # BM25 + dense, RRF
+  rrf_k: 60
+  candidate_k: 100
+  top_k: 15
+  multi: true                      # retrieve_multi() when filters name several companies / forms / periods
+  reranker: none
+  parent_text: false
+
+reader:
+  model: gpt-6.1-terra
+  prompt: v2                       # period-first prompt
+  temperature: 0                   # falls back to the model default if the model rejects it
+
+prices_usd_per_1m:                 # third-party price page, 11/11; confirm with PM
+  input: 1.0
+  output: 5.0
+
+dev_result:                        # Gold Set v2 (eval/round1/benchmark_v2.jsonl), Eval's grader @ 0fd5695
+  naa: 0.935                       # 87/93
+  balanced_raa: 0.977
+  unanswerable_declined: 10/10
