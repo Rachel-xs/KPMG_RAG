@@ -211,6 +211,9 @@ class Reader:
         return (self.tokens["prompt_tokens"] * self.price_in + self.tokens["completion_tokens"] * self.price_out) / 1e6
 
 
+DEFAULT_GOLD = "eval/round1/benchmark_v2.jsonl"
+
+
 def load_preset(name: str) -> dict:
     import yaml
     path = ROOT / "configs" / f"{name}.yaml"
@@ -316,7 +319,7 @@ def grade(q: dict, g: str, block: dict) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--index", default="data/round1/index_C1")
-    ap.add_argument("--gold", default="eval/round1/benchmark_v2.jsonl")
+    ap.add_argument("--gold", default=DEFAULT_GOLD)
     ap.add_argument("--model", default=None, help="default: generation.model in config.yaml")
     ap.add_argument("--prompt", default="v2", choices=sorted(PROMPTS))
     ap.add_argument("--top-k", type=int, default=10)
@@ -371,7 +374,8 @@ def main():
     from_preset = bool(preset) and preset["reader"].get("narrative_long", False) == a.narrative_long
     tag = ("dev_" if (a.narrative_variant or (a.narrative_long and not from_preset) or (a.spec != "v1" and not preset)) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
         + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
-        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "") + ("_chroma" if a.backend == "chroma" else "") + ("" if a.filters == "gold" else f"_f-{a.filters}")
+        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "") + ("_chroma" if a.backend == "chroma" else "") + ("" if a.filters == "gold" else f"_f-{a.filters}") \
+        + ("" if a.gold == DEFAULT_GOLD else f"_{Path(a.gold).stem}")  # suites / holdout never share a folder
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
