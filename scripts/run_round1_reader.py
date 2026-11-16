@@ -72,6 +72,16 @@ JSON_SPEC = """Return JSON only:
  "cites": [1, 3]}                   // excerpt numbers used"""
 
 
+# dev experiment (11/16): Eval's narrative judge found answers that state the main point but drop secondary required
+# points; JSON_SPEC caps answer_text at one or two sentences. For narrative-type questions only, allow a fuller answer.
+JSON_SPEC_LONG = JSON_SPEC.replace(
+    '"answer_text": "...",              // one or two sentences',
+    '"answer_text": "...",              // for an explanation, comparison or definition: up to 5 sentences that state\n'
+    '                                   // every distinct reason, component, segment or figure the question asks for;\n'
+    '                                   // every claim must come from the excerpts (no outside knowledge)')
+assert JSON_SPEC_LONG != JSON_SPEC
+
+
 def fmt_context(results: list[dict], use_parent: bool) -> str:
     parts = []
     for i, r in enumerate(results, 1):
@@ -103,8 +113,8 @@ class Reader:
         self.tokens = Counter()
         self.last: dict = {}
 
-    def __call__(self, question: str, context: str) -> dict:
-        system = PROMPTS[self.prompt] + "\n\n" + JSON_SPEC
+    def __call__(self, question: str, context: str, spec: str | None = None) -> dict:
+        system = PROMPTS[self.prompt] + "\n\n" + (spec or JSON_SPEC)
         user = f"Excerpts:\n\n{context}\n\nQuestion: {question}"
         key = hashlib.sha256(f"{self.model}\n{system}\n{user}".encode()).hexdigest()[:24]
         if key in self.cache:
@@ -253,6 +263,9 @@ def main():
     ap.add_argument("--narrative-variant", default=None, choices=["rrf", "union", "neighbors", "union+neighbors"],
                     help="dev experiments only: retrieval variant (rag/narrative.py) for narrative / categorical / "
                          "false-premise questions, chosen by the Gold answer_type; other questions unchanged")
+    ap.add_argument("--narrative-long", action="store_true",
+                    help="dev experiments only: narrative / categorical / false-premise questions may answer in up to 5 "
+                         "sentences covering every reason or component (JSON_SPEC_LONG); number questions unchanged")
     ap.add_argument("--preset", default=None, help="configs/<name>.yaml, e.g. final_v1 (overrides the flags above)")
     ap.add_argument("--out", default="eval/results/round1/reader")
     a = ap.parse_args()
@@ -276,8 +289,9 @@ def main():
         gold = gold[: a.limit]
 
     # a preset plus an experiment is no longer the preset: label it as a dev experiment
-    tag = ("dev_" if a.narrative_variant else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
-        + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "")
+    tag = ("dev_" if (a.narrative_variant or a.narrative_long) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
+        + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
+        + ("_narr-long" if a.narrative_long else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
@@ -306,7 +320,8 @@ def main():
         retrieval_ms = round((time.perf_counter() - t_ret) * 1000, 1)
         res = env["results"]
         reader.last = {}
-        ans = reader(q["question"], fmt_context(res, a.parent)) if res else \
+        spec = JSON_SPEC_LONG if (a.narrative_long and g in ("narrative", "categorical", "false_premise")) else None
+        ans = reader(q["question"], fmt_context(res, a.parent), spec) if res else \
             {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
         block = to_block(q, ans, res, trace_id)
         row = {"qid": q["qid"], "group": g, "type": q["type"], "tickers": "|".join(q["tickers"]),
@@ -375,7 +390,7 @@ def main():
             "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
             "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
         },
-        "preset": a.preset, "narrative_variant": a.narrative_variant,
+        "preset": a.preset, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long,
     }
 
     with open(out / "per_question.csv", "w", newline="", encoding="utf-8") as fh:
