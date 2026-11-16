@@ -47,8 +47,8 @@ Stress types (one or two each):
    plus `scripts/run_round1_eval.py` for retrieval and `scripts/run_precheck_replay.py --gold <holdout_A.jsonl>` for the
    pre-check, and hands the AnswerBlocks to Eval for official scoring.
 3. Batch B is released only after RAG tags `final_v2`; same procedure with `--preset final_v2`.
-4. We report dev and holdout side by side, sliced by company (MSFT / other) and stress vs normal,, with 95% confidence intervals and the cost and latency per question.
-   A gap is a finding, not something to tune away: any change made after seeing the holdout is a new preset
-   (`final_v2`) and is reported as tuned-after-holdout.
+4. We report dev and holdout side by side, sliced by company (MSFT / other) and stress vs normal, with 95% confidence intervals and the cost and latency per question.
+   A gap is a finding, not something to tune away. `final_v2` may only use what we learn on dev; if it also uses
+   anything learned from batch A results, the report says so, and batch B is then the only clean test of it.
 
 Target: batch A run 11/21–11/24 (before Thanksgiving); batch B run 11/28–11/29, before the 11/30 code freeze.
