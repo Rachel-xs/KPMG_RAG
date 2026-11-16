@@ -250,6 +250,9 @@ def main():
     ap.add_argument("--multi", action="store_true",
                     help="multi-target questions use retrieve_multi (contract v1.2): one search per company / filing")
     ap.add_argument("--dry-run", action="store_true", help="retrieve and build prompts, no API calls")
+    ap.add_argument("--narrative-variant", default=None, choices=["rrf", "union", "neighbors", "union+neighbors"],
+                    help="dev experiments only: retrieval variant (rag/narrative.py) for narrative / categorical / "
+                         "false-premise questions, chosen by the Gold answer_type; other questions unchanged")
     ap.add_argument("--preset", default=None, help="configs/<name>.yaml, e.g. final_v1 (overrides the flags above)")
     ap.add_argument("--out", default="eval/results/round1/reader")
     a = ap.parse_args()
@@ -272,19 +275,28 @@ def main():
     if a.limit:
         gold = gold[: a.limit]
 
-    tag = (f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "")
+    # a preset plus an experiment is no longer the preset: label it as a dev experiment
+    tag = ("dev_" if a.narrative_variant else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
+        + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
     reader = Reader(model, a.prompt, base / "cache.jsonl", p_in, p_out, a.dry_run)
     retr = Retriever(ROOT / a.index, log_dir=None)
+    narr = None
+    if a.narrative_variant:
+        from rag.narrative import NarrativeSearch
+        narr = NarrativeSearch(retr)
 
     rows, blocks = [], []
     for i, q in enumerate(gold, 1):
         g = group(q)
         trace_id = f"round1-reader-{q['qid']}"
         t_ret = time.perf_counter()
-        if a.multi and len(split_filters(q.get("filters"))) > 1:
+        if narr and g in ("narrative", "categorical", "false_premise") and len(split_filters(q.get("filters"))) == 1:
+            env = narr.search(q["question"], q.get("filters") or None, top_k=a.top_k, variant=a.narrative_variant,
+                              trace_id=trace_id)
+        elif a.multi and len(split_filters(q.get("filters"))) > 1:
             env = multi_search(lambda qq, f, k, trace_id=None: retr.search(qq, filters=f, top_k=k, method=a.method,
                                                                             trace_id=trace_id),
                                q["question"], q.get("filters"), top_k=a.top_k, trace_id=trace_id)
@@ -363,7 +375,7 @@ def main():
             "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
             "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
         },
-        "preset": a.preset,
+        "preset": a.preset, "narrative_variant": a.narrative_variant,
     }
 
     with open(out / "per_question.csv", "w", newline="", encoding="utf-8") as fh:
