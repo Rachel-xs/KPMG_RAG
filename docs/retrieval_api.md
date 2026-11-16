@@ -365,3 +365,53 @@ evidence_status, weak_reasons, warnings, trace_id, top_k_each}`.
 **When the Agent should call it:** whenever `retrieve_with_status()` returns `multi_target`, or directly for questions that
 compare companies or combine a 10-K with a 10-Q. For a derived Q4, filters such as
 `{"ticker": "MSFT", "fiscal_year": 2026, "fiscal_period": ["FY", "Q3"]}` give one 10-K and one 10-Q sub-search.
+
+## 19. v1.3 draft (2026-11-16): deterministic pre-check `check_coverage`
+
+**Status: draft for RAG / GraphRAG / Data / Agents to agree on (mentor 11/12).** Additive; nothing above changes.
+
+Mentor guidance: before any retrieval, the Agent extracts the companies and periods asked about; a deterministic tool checks
+whether those filings exist; the hits and misses go back to the Agent; if nothing hits, the Agent answers directly without
+calling RAG. Ranking / filtering questions go to deterministic tools, not to the LLM.
+
+```python
+from rag.coverage import check_coverage, extract_request, precheck_question
+
+check_coverage(tickers=None, companies=None, forms=None, fiscal_years=None, fiscal_periods=None,
+               period_ends=None, combine="product") -> dict
+precheck_question("What was Micorsoft's revenue for the quarter ended September 30, 2026?")   # rules-only extraction + check
+```
+
+| Field | Meaning |
+|---|---|
+| `status` | `all_hit` / `partial` / `none` / `unresolved` (no named company is in the corpus) / `no_target` (no company named: nothing to check, go on to retrieval) |
+| `entities` | how each name resolved: `ticker`, `alias` or `fuzzy` (with `score`) |
+| `unresolved` | names that match no corpus company |
+| `targets` | per company × requested form / fiscal year / period / date: `hit` or `miss`, with `accessions` |
+| `available` | per requested company, the filings we do have (so the reply can say what *can* be answered) |
+| `filters` | `{"accession_number": [...]}` for the hits, ready for `retrieve_multi()` |
+| `message` | one sentence the Agent can paraphrase |
+
+Rules (conservative: a wrong `miss` refuses an answerable question; a wrong `hit` costs one retrieval call):
+dates match a filing's period end within 7 days (52/53-week calendars), its prior-year comparative column, or (10-Q) the last
+fiscal year end; a 10-K covers the prior fiscal year and Q4; company names resolve by ticker, alias, or one/two-typo fuzzy
+match (names of 5+ characters). `combine="product"` for structured filters (each company × form × FY × period must exist),
+`"independent"` for constraints pulled from free text.
+Manifest: `$RAG_COVERAGE_MANIFEST` (a filings CSV from Data) or the index's `chunks.jsonl`.
+
+Round 1 replay (`scripts/run_precheck_replay.py`, Gold v2.1, 155 questions, rules-only extraction from the question text):
+**0 of 140 answerable questions blocked**; all 3 questions whose filing is not indexed (NTAP 10-Q) caught; 5 of 12
+unanswerable questions caught before any retrieval (future or unfiled periods: EV1-063, EV1-065, EV2-046, EV2-047, EV2-050);
+misspelled company names resolve 123/124 (exact matching alone: 15/124).
+
+**Proposed fallback policy (to agree with Agents / GraphRAG / Data):**
+
+| Situation | Action |
+|---|---|
+| pre-check `none` / `unresolved` | answer directly: not in the database, list `available`; no RAG / GraphRAG call |
+| `partial` | retrieve only the hits; say which parts are missing |
+| ranking / filtering / time-series question | deterministic tool (GraphRAG `structured_search` / SQL); LLM extracts parameters only |
+| RAG `ok` | answer |
+| RAG `weak` / `empty` | one fallback to GraphRAG / SQL |
+| RAG `ok` but the Agent's evidence check says insufficient | per the Agents' experiment (targeted RAG retry vs direct graph fallback) |
+| still insufficient after one fallback | decline with the reason |

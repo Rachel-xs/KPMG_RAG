@@ -19,3 +19,6 @@ eval/results/
 
 # Database exports stay off GitHub (Data request)
 exports/
+
+# Round 1 index and exports stay local (rebuilt from the frozen manifest)
+data/round1/

@@ -38,7 +38,7 @@ retrieval:
   candidate_k: 100
 
 generation:
-  model: "gpt-4o-mini"
-  # USD per 1M tokens — fill in from the provider's current price page to enable cost logging.
-  price_per_1m_input: null
-  price_per_1m_output: null
+  model: "gpt-6.1-terra"   # gpt-4o-mini is deprecated; Round 1 reader runs (11/11) used gpt-6.1-terra
+  # USD per 1M tokens, used for cost logging. Third-party price page (11/11); confirm with PM.
+  price_per_1m_input: 1.0
+  price_per_1m_output: 5.0

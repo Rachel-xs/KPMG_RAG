@@ -4,6 +4,7 @@
     python scripts/run_round1_reader.py --limit 5               # smoke test (5 questions, a few cents at most)
     python scripts/run_round1_reader.py                         # full run, prompt v2 (period-aware)
     python scripts/run_round1_reader.py --prompt v1             # baseline prompt, for the before/after
+    python scripts/run_round1_reader.py --preset final_v1       # frozen final settings (configs/final_v1.yaml)
 
 Needs OPENAI_API_KEY in .env (loaded by rag.config) and the Round 1 index (data/round1/index_C1).
 
@@ -19,6 +20,11 @@ What it measures
   narrative      answers saved for Eval's judge, not scored here
   graph route    Exhibit 21 questions RAG cannot answer: reported separately (should decline -> fallback)
   NTAP 10-Q      excluded, as in the retrieval run
+
+Cost and latency (mentor 11/12: compare methods on cost and latency, not only accuracy): every question records
+the reader's input / output tokens (from the API response's `usage`), the reader call's latency, the retrieval
+latency and the cost in USD; summary.json has per-question means and p50 / p95 latencies. A cached answer keeps
+the tokens and latency of the call that produced it, so re-running a configuration reports the same costs.
 
 Answers are cached (eval/results/round1/reader/cache.jsonl) by model + prompt + context hash, so re-running
 after a code change costs nothing; change the prompt or the model and only then are new calls made.
@@ -95,6 +101,7 @@ class Reader:
                 self.cache[d["key"]] = d
         self.client = None
         self.tokens = Counter()
+        self.last: dict = {}
 
     def __call__(self, question: str, context: str) -> dict:
         system = PROMPTS[self.prompt] + "\n\n" + JSON_SPEC
@@ -103,6 +110,7 @@ class Reader:
         if key in self.cache:
             d = self.cache[key]
             self.tokens["cached_calls"] += 1
+            self.last = {"cached": True}
         elif self.dry:
             n = (len(system) + len(user)) // 4
             self.tokens["est_prompt_tokens"] += n
@@ -129,18 +137,55 @@ class Reader:
                 fh.write(json.dumps(d) + "\n")
             self.cache[key] = d
             self.tokens["api_calls"] += 1
+            self.last = {"cached": False}
         self.tokens["prompt_tokens"] += d["prompt_tokens"]
         self.tokens["completion_tokens"] += d["completion_tokens"]
+        self.last.update(prompt_tokens=d["prompt_tokens"], completion_tokens=d["completion_tokens"],
+                         latency_ms=d.get("latency_ms"), cost_usd=self.call_cost(d["prompt_tokens"], d["completion_tokens"]))
         try:
             out = json.loads(d["raw"])
         except json.JSONDecodeError:
             out = {"error": "bad_json", "answer_text": d["raw"]}
         return out
 
+    def call_cost(self, p: int, c: int) -> float | None:
+        if self.price_in is None or self.price_out is None:
+            return None
+        return (p * self.price_in + c * self.price_out) / 1e6
+
     def cost(self) -> float | None:
         if self.price_in is None or self.price_out is None:
             return None
         return (self.tokens["prompt_tokens"] * self.price_in + self.tokens["completion_tokens"] * self.price_out) / 1e6
+
+
+def load_preset(name: str) -> dict:
+    import yaml
+    path = ROOT / "configs" / f"{name}.yaml"
+    if not path.exists():
+        raise SystemExit(f"no preset {path}")
+    return yaml.safe_load(path.read_text())
+
+
+def apply_preset(a, p: dict) -> None:
+    """Preset values win over command-line flags for everything that defines the system under test."""
+    a.index, a.top_k, a.method = p["index"]["dir"], p["retrieval"]["top_k"], p["retrieval"]["method"]
+    a.multi, a.parent = bool(p["retrieval"]["multi"]), bool(p["retrieval"].get("parent_text", False))
+    a.model, a.prompt = p["reader"]["model"], p["reader"]["prompt"]
+    prices = p.get("prices_usd_per_1m") or {}
+    a.price_in = a.price_in if a.price_in is not None else prices.get("input")
+    a.price_out = a.price_out if a.price_out is not None else prices.get("output")
+    meta = json.loads((ROOT / a.index / "meta.json").read_text())
+    want = p["index"].get("index_version")
+    if want and meta["index_version"] != want:
+        raise SystemExit(f"preset {p['name']} expects index_version {want}, {a.index} has {meta['index_version']}")
+
+
+def pctl(xs: list, q: float):
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return None
+    return xs[min(len(xs) - 1, max(0, round(q * (len(xs) - 1))))]
 
 
 def group(q: dict) -> str:
@@ -205,9 +250,14 @@ def main():
     ap.add_argument("--multi", action="store_true",
                     help="multi-target questions use retrieve_multi (contract v1.2): one search per company / filing")
     ap.add_argument("--dry-run", action="store_true", help="retrieve and build prompts, no API calls")
+    ap.add_argument("--preset", default=None, help="configs/<name>.yaml, e.g. final_v1 (overrides the flags above)")
     ap.add_argument("--out", default="eval/results/round1/reader")
     a = ap.parse_args()
 
+    preset = load_preset(a.preset) if a.preset else None
+    if preset:
+        apply_preset(a, preset)
+        print(f"preset {preset['name']}: {a.model} prompt {a.prompt}, {a.method} top {a.top_k}, multi={a.multi}, index {a.index}")
     cfg = load_config()
     gen = cfg.get("generation", {})
     model = a.model or gen.get("model", "gpt-4o-mini")
@@ -222,7 +272,7 @@ def main():
     if a.limit:
         gold = gold[: a.limit]
 
-    tag = f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "")
+    tag = (f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
@@ -233,6 +283,7 @@ def main():
     for i, q in enumerate(gold, 1):
         g = group(q)
         trace_id = f"round1-reader-{q['qid']}"
+        t_ret = time.perf_counter()
         if a.multi and len(split_filters(q.get("filters"))) > 1:
             env = multi_search(lambda qq, f, k, trace_id=None: retr.search(qq, filters=f, top_k=k, method=a.method,
                                                                             trace_id=trace_id),
@@ -240,7 +291,9 @@ def main():
         else:
             env = retr.search(q["question"], filters=q.get("filters") or None, top_k=a.top_k, method=a.method,
                               trace_id=trace_id)
+        retrieval_ms = round((time.perf_counter() - t_ret) * 1000, 1)
         res = env["results"]
+        reader.last = {}
         ans = reader(q["question"], fmt_context(res, a.parent)) if res else \
             {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
         block = to_block(q, ans, res, trace_id)
@@ -249,7 +302,12 @@ def main():
                "evidence_status": env.get("evidence_status"), "weak_reasons": "|".join(env.get("weak_reasons") or []),
                "n_results": len(res), "multi": "subqueries" in env, "answered": block["answered"], "answer_text": block["answer_text"],
                "value_text": block.get("value_text"), "period_end": block.get("period_end"),
-               "cited_chunks": "|".join(c["id"] for c in block["citations"])}
+               "cited_chunks": "|".join(c["id"] for c in block["citations"]),
+               "retrieval_ms": retrieval_ms, "n_subqueries": len(env.get("subqueries") or []) or 1,
+               "reader_prompt_tokens": reader.last.get("prompt_tokens", 0),
+               "reader_completion_tokens": reader.last.get("completion_tokens", 0),
+               "reader_latency_ms": reader.last.get("latency_ms"), "reader_cached": reader.last.get("cached"),
+               "cost_usd": reader.last.get("cost_usd")}
         if not ans.get("_dry"):
             row.update(grade(q, g, block))
         if g in ("number", "ntap_10q_excluded") and retrieval_kind(q) in ("number", "ntap_10q_excluded"):
@@ -292,6 +350,20 @@ def main():
         "evidence_status_vs_correct": {s: dict(Counter("correct" if r["passed"] else "wrong" for r in nums if r["evidence_status"] == s))
                                        for s in sorted({r["evidence_status"] for r in nums if r["evidence_status"]})},
         "tokens": dict(reader.tokens), "cost_usd": reader.cost(),
+        "per_question": {
+            "n": len(rows),
+            "prompt_tokens_mean": sum(r["reader_prompt_tokens"] for r in rows) / max(len(rows), 1),
+            "completion_tokens_mean": sum(r["reader_completion_tokens"] for r in rows) / max(len(rows), 1),
+            "cost_usd_mean": (reader.cost() / len(rows)) if reader.cost() is not None and rows else None,
+            "cost_usd_per_1000": (reader.cost() / len(rows) * 1000) if reader.cost() is not None and rows else None,
+            "reader_latency_ms_p50": pctl([r["reader_latency_ms"] for r in rows], 0.5),
+            "reader_latency_ms_p95": pctl([r["reader_latency_ms"] for r in rows], 0.95),
+            "retrieval_ms_p50": pctl([r["retrieval_ms"] for r in rows], 0.5),
+            "retrieval_ms_p95": pctl([r["retrieval_ms"] for r in rows], 0.95),
+            "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
+            "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
+        },
+        "preset": a.preset,
     }
 
     with open(out / "per_question.csv", "w", newline="", encoding="utf-8") as fh:
@@ -322,7 +394,10 @@ def main():
           f"- Exhibit 21 (graph route), declined by the RAG reader: {summary['graph_route']['declined']}/{summary['graph_route']['n']}",
           f"- Narrative: {len(by['narrative'])} answers saved for Eval's judge, not scored here", "",
           f"evidence_status vs number correctness: {summary['evidence_status_vs_correct']}", "",
-          f"Tokens: {summary['tokens']}; cost: " + ("n/a (set prices in config.yaml)" if summary["cost_usd"] is None else f"${summary['cost_usd']:.3f}"), "",
+          f"Tokens: {summary['tokens']}; cost: " + ("n/a (set prices in config.yaml)" if summary["cost_usd"] is None else f"${summary['cost_usd']:.3f}"),
+          "Per question: {prompt_tokens_mean:,.0f} input / {completion_tokens_mean:,.0f} output tokens; "
+          "reader p50 {reader_latency_ms_p50} ms, p95 {reader_latency_ms_p95} ms; "
+          "retrieval p50 {retrieval_ms_p50} ms, p95 {retrieval_ms_p95} ms".format(**summary["per_question"]), "",
           "## Wrong number answers", "", "| qid | source | label | answer | gold |", "|---|---|---|---|---|"]
     md += [f"| {r['qid']} | {r.get('error_source') or ''} | {r['label']} | {(r.get('value_text') or r['answer_text'])[:60]} | {r['gold']} |"
            for r in miss]
