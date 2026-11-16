@@ -265,9 +265,28 @@ def to_block(q: dict, ans: dict, results: list[dict], trace_id: str) -> dict:
                         "value_text": v.get("value_text")} for v in vals]
     if ans.get("error"):
         b["error"] = ans["error"]
+    for k in ("vid", "sid"):  # Eval's suites (messy wording, abstention) key answers by these ids
+        if q.get(k):
+            b[k] = q[k]
     if not b["answered"]:
         b["value"] = b["value_text"] = None
     return b
+
+
+def filters_for(q: dict, mode: str, cov=None) -> tuple[dict | None, dict | None]:
+    """(filters for retrieval, pre-check result or None). mode: gold | none | precheck."""
+    if mode == "gold":
+        return q.get("filters") or None, None
+    if mode == "none":
+        return None, None
+    from rag.coverage import extract_request
+    pc = cov.check(**extract_request(q["question"], cov), combine="independent")
+    if pc["status"] in ("none", "unresolved") or not pc["filters"]:
+        return None, pc
+    tickers = sorted({t["ticker"] for t in pc["targets"] if t["status"] == "hit"})
+    # one sub-search per company (retrieve_multi splits on ticker), each restricted to the filings that cover it
+    f = {"ticker": tickers if len(tickers) > 1 else tickers[0], "accession_number": pc["filters"]["accession_number"]}
+    return f, pc
 
 
 def grade(q: dict, g: str, block: dict) -> dict:
@@ -320,6 +339,11 @@ def main():
     ap.add_argument("--backend", choices=["custom", "chroma"], default="custom",
                     help="custom = data/round1/index_C1 (exact NumPy + BM25); chroma = the served backend")
     ap.add_argument("--chroma-dir", default="data/round1/chroma_C1")
+    ap.add_argument("--filters", choices=["gold", "none", "precheck"], default="gold",
+                    help="gold = the question file's filters (the Agent passes the right filing); none = search the "
+                         "whole index; precheck = filters from rag.coverage on the question text alone (what a user "
+                         "who names no filing gets): none / unresolved -> declined with the pre-check message, "
+                         "no retrieval")
     a = ap.parse_args()
 
     preset = load_preset(a.preset) if a.preset else None
@@ -344,7 +368,7 @@ def main():
     from_preset = bool(preset) and preset["reader"].get("narrative_long", False) == a.narrative_long
     tag = ("dev_" if (a.narrative_variant or (a.narrative_long and not from_preset) or (a.spec != "v1" and not preset)) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
         + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
-        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "") + ("_chroma" if a.backend == "chroma" else "")
+        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "") + ("_chroma" if a.backend == "chroma" else "") + ("" if a.filters == "gold" else f"_f-{a.filters}")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
@@ -354,6 +378,10 @@ def main():
         retr = make_retriever("chroma", ROOT / a.chroma_dir, log_dir=None)
     else:
         retr = Retriever(ROOT / a.index, log_dir=None)
+    cov = None
+    if a.filters == "precheck":
+        from rag.coverage import CoverageIndex, extract_request
+        cov = CoverageIndex.from_records(retr.chunks, source=f"{a.backend}:{a.chroma_dir if a.backend == 'chroma' else a.index}")
     narr = None
     if a.narrative_variant:
         from rag.narrative import NarrativeSearch
@@ -364,28 +392,37 @@ def main():
         g = group(q)
         trace_id = f"round1-reader-{q['qid']}"
         t_ret = time.perf_counter()
-        if narr and g in ("narrative", "categorical", "false_premise") and len(split_filters(q.get("filters"))) == 1:
-            env = narr.search(q["question"], q.get("filters") or None, top_k=a.top_k, variant=a.narrative_variant,
+        filters, pc = filters_for(q, a.filters, cov)
+        if pc and pc["status"] in ("none", "unresolved"):  # the Agent answers directly; RAG is not called
+            env = {"results": [], "evidence_status": f"precheck_{pc['status']}", "weak_reasons": []}
+        elif narr and g in ("narrative", "categorical", "false_premise") and len(split_filters(filters)) == 1:
+            env = narr.search(q["question"], filters or None, top_k=a.top_k, variant=a.narrative_variant,
                               trace_id=trace_id)
-        elif a.multi and len(split_filters(q.get("filters"))) > 1:
+        elif a.multi and len(split_filters(filters)) > 1:
             env = multi_search(lambda qq, f, k, trace_id=None: retr.search(qq, filters=f, top_k=k, method=a.method,
                                                                             trace_id=trace_id),
-                               q["question"], q.get("filters"), top_k=a.top_k, trace_id=trace_id)
+                               q["question"], filters, top_k=a.top_k, trace_id=trace_id)
         else:
-            env = retr.search(q["question"], filters=q.get("filters") or None, top_k=a.top_k, method=a.method,
+            env = retr.search(q["question"], filters=filters or None, top_k=a.top_k, method=a.method,
                               trace_id=trace_id)
         retrieval_ms = round((time.perf_counter() - t_ret) * 1000, 1)
         res = env["results"]
         reader.last = {}
         base_spec = SPECS[a.spec]
         spec = long_spec(base_spec) if (a.narrative_long and g in ("narrative", "categorical", "false_premise")) else base_spec
-        ans = reader(q["question"], fmt_context(res, a.parent), spec) if res else \
-            {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
+        if res:
+            ans = reader(q["question"], fmt_context(res, a.parent), spec)
+        elif pc and pc["status"] in ("none", "unresolved"):
+            ans = {"answered": False, "answer_text": pc["message"], "value": None, "cites": []}
+        else:
+            ans = {"answered": False, "answer_text": "No evidence was retrieved.", "value": None, "cites": []}
         block = to_block(q, ans, res, trace_id)
         row = {"qid": q["qid"], "group": g, "type": q["type"], "tickers": "|".join(q["tickers"]),
                "question": q["question"], "gold": q["answer"].get("display"),
                "evidence_status": env.get("evidence_status"), "weak_reasons": "|".join(env.get("weak_reasons") or []),
-               "n_results": len(res), "multi": "subqueries" in env, "answered": block["answered"], "answer_text": block["answer_text"],
+               "n_results": len(res), "multi": "subqueries" in env, "filter_mode": a.filters,
+               "filters_used": json.dumps(filters, sort_keys=True) if filters else "",
+               "precheck_status": pc["status"] if pc else "", "answered": block["answered"], "answer_text": block["answer_text"],
                "value_text": block.get("value_text"), "period_end": block.get("period_end"),
                "cited_chunks": "|".join(c["id"] for c in block["citations"]),
                "retrieval_ms": retrieval_ms, "n_subqueries": len(env.get("subqueries") or []) or 1,

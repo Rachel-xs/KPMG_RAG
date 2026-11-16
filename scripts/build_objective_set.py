@@ -4,6 +4,8 @@
     python scripts/build_objective_set.py --set C      # companies outside the Round 1 ten, 1 per company (<= 100)
     python scripts/build_objective_set.py --set A --from-json exports/metric_rows.json   # offline, from a saved pull
     python scripts/build_objective_set.py --set A --seed <private number>                # holder picks the seed
+    python scripts/build_objective_set.py --pull-only                  # save the metric rows for the holder; builds nothing
+    python scripts/build_objective_set.py --set A --from-json rows.json --seed <n> --exclude-gold dev.jsonl --exclude-gold holdout.jsonl
 
 Source: finance.metric_value (validation passed, status reported) joined to the table cell Data links to the fact.
 Output: eval/objective/<set>.jsonl in the Gold Set v2 format (Eval's grader scores it unchanged) plus
@@ -61,6 +63,45 @@ WHERE mv.validation_status = 'passed' AND mv.status IN ('reported', 'conflict', 
 """
 
 
+def printed_number(display: str | None) -> float | None:
+    """The number as printed in the linked cell ("(1,234.5)" -> 1234.5), or None."""
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", display or "")
+    return float(m.group(0).replace(",", "")) if m else None
+
+
+def printed_scale(r: dict) -> float | None:
+    """The table's scale: value / printed number, snapped to 1, 1e3, 1e6 or 1e9 (None if it matches none)."""
+    p = printed_number(r.get("display_text"))
+    if not p:
+        return None
+    ratio = abs(float(r["value"])) / p
+    for s in (1.0, 1e3, 1e6, 1e9):
+        if abs(ratio / s - 1) < 0.01:
+            return s
+    return None
+
+
+def printed_sig_figs(display: str | None) -> int | None:
+    """Significant figures of the printed number, counted like Eval's grader (kpmg_eval.normalize.Quantity.sig_figs):
+    leading zeros never count; trailing zeros of a whole number do not count ("1,200" -> 2)."""
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", display or "")
+    if not m:
+        return None
+    s = m.group(0).replace(",", "")
+    digits = s.replace(".", "").lstrip("0")
+    if "." not in s:
+        digits = digits.rstrip("0")
+    return len(digits) or 1
+
+
+def answer_unit(r: dict) -> tuple[str, float]:
+    """(unit phrase for the question, divisor). Per-share stays per share; otherwise ask in the table's own scale
+    (thousands for e.g. Casey's) so the printed digits are exactly what a correct answer writes."""
+    if r["metric_key"] == "eps_diluted":
+        return "USD per share", 1.0
+    return ("USD thousands", 1e3) if printed_scale(r) == 1e3 else ("USD millions", 1e6)
+
+
 def company_name(ticker: str, raw: str | None) -> str:
     if ticker in COMPANY:
         return COMPANY[ticker]
@@ -104,18 +145,26 @@ def sig_figs(display: str | None) -> int:
 def question_text(r: dict) -> str:
     who = company_name(r["ticker"], r.get("company_name"))
     poss = who if who.endswith("'s") else who + ("'" if who.endswith("s") else "'s")
-    unit = "Answer in USD per share." if r["metric_key"] == "eps_diluted" else "Answer in USD millions."
-    return f"What was {poss} {LABEL[r['metric_key']]} {period_phrase(r)}? {unit}"
+    return f"What was {poss} {LABEL[r['metric_key']]} {period_phrase(r)}? Answer in {answer_unit(r)[0]}."
 
 
 def to_item(r: dict, qid: str, stratum: dict) -> dict:
     eps = r["metric_key"] == "eps_diluted"
     value = float(r["value"])
-    sf = sig_figs(r.get("display_text"))
-    if not eps:  # the question asks for USD millions: never demand more digits than the integer millions carry
-        sf = max(2, min(sf, len(str(int(round(abs(value) / 1e6)))) or 2))
+    unit_phrase, div = answer_unit(r)
+    # precision floor = the digits printed in the linked cell (Eval 11/16, rule d), counted the grader's way; if the
+    # table's scale is not the one the question asks for (should not happen after answer_unit), never demand more
+    # digits than the asked unit's integer part carries
+    sf = printed_sig_figs(r.get("display_text")) or sig_figs(r.get("display_text"))
+    if not eps and printed_scale(r) != div:
+        sf = min(sf, len(str(int(round(abs(value) / div)))) or 2)
+    sf = max(1, sf)
     m = months(r.get("duration_days"))
-    disp = f"USD {value:,.2f} per share" if eps else f"USD {value / 1e6:,.{0 if abs(value) >= 1e9 else 1}f} million"
+    if eps:
+        disp = f"USD {value:,.2f} per share"
+    else:
+        word = "thousand" if div == 1e3 else "million"
+        disp = f"USD {value / div:,.{0 if abs(value) / div >= 1000 else 1}f} {word}"
     fact = {"cik": r.get("cik"), "accession": r["accession_number"], "concept": "us-gaap:" + (r.get("concept_names") or ["?"])[0],
             "period_start": r.get("period_start"), "period_end": r["period_end"],
             "unit": "USD/shares" if eps else "USD", "ticker": r["ticker"], "level": "FACT"}
@@ -133,10 +182,29 @@ def to_item(r: dict, qid: str, stratum: dict) -> dict:
                       "row_heading": r.get("row_heading"), "column_period": r.get("column_period"),
                       "period_months": 0 if r["period_kind"] == "instant" else m},
         "metric_key": r["metric_key"], "strata": stratum, "rag_evidence": [], "status": "auto_xbrl",
+        "answer_unit": unit_phrase, "printed_scale": printed_scale(r),
     }
 
 
-def population(rows: list[dict], scope_accessions: set | None, scope_tickers: set | None, exclude_tickers: set | None):
+def used_keys(gold_files: list[str]) -> set[tuple]:
+    """(ticker, concept, period_end) of every XBRL fact a dev or holdout question uses (Eval 11/16, rule a: leave out
+    any company x metric x period a question already asks about). Concepts compare without their prefix."""
+    keys = set()
+    for path in gold_files or []:
+        for q in map(json.loads, open(path, encoding="utf-8")):
+            for f in (q.get("facts") or []) + ((q.get("gold") or {}).get("evidence") or []):
+                if f.get("ticker") and f.get("concept") and f.get("period_end"):
+                    keys.add((f["ticker"].upper(), f["concept"].split(":")[-1], str(f["period_end"])[:10]))
+    return keys
+
+
+def is_used(r: dict, used: set[tuple]) -> bool:
+    concepts = r.get("concept_names") or []
+    return any((r["ticker"].upper(), c.split(":")[-1], str(r["period_end"])[:10]) in used for c in concepts)
+
+
+def population(rows: list[dict], scope_accessions: set | None, scope_tickers: set | None, exclude_tickers: set | None,
+               used: set[tuple] | None = None):
     """Apply the pre-registered exclusions; return (kept rows, exclusion counts)."""
     excl = Counter()
     pool = []
@@ -157,6 +225,8 @@ def population(rows: list[dict], scope_accessions: set | None, scope_tickers: se
             excl["2_no_linked_cell"] += 1
         elif r["metric_key"] not in LABEL or period_phrase(r) is None:
             excl["unsupported_metric_or_period"] += 1
+        elif used and is_used(r, used):
+            excl["5_used_by_dev_or_holdout"] += 1
         else:
             pool.append(r)
     # 3. one row per (company, metric, period): the filing whose own period is this one, else the latest filing
@@ -232,7 +302,11 @@ def fetch_rows() -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--set", choices=["A", "C"], required=True)
+    ap.add_argument("--set", choices=["A", "C"])
+    ap.add_argument("--pull-only", action="store_true",
+                    help="query the database, save the rows to --save-pull and stop (no questions are built)")
+    ap.add_argument("--exclude-gold", action="append", default=[],
+                    help="question file(s) whose company x metric x period must not be drawn (dev, holdout); repeatable")
     ap.add_argument("--from-json", default=None, help="use a saved pull instead of querying the database")
     ap.add_argument("--save-pull", default="exports/metric_rows.json")
     ap.add_argument("--out", default="eval/objective")
@@ -240,6 +314,8 @@ def main():
                     help="sampling seed; whoever holds the set picks it and keeps it private (only a hash is logged)")
     a = ap.parse_args()
 
+    if not a.pull_only and not a.set:
+        ap.error("--set is required unless --pull-only")
     if a.from_json:
         rows = json.loads(Path(ROOT / a.from_json).read_text())
     else:
@@ -247,19 +323,24 @@ def main():
         p = ROOT / a.save_pull
         p.parent.mkdir(exist_ok=True)
         p.write_text(json.dumps(rows, default=str))
-        print(f"pulled {len(rows)} metric rows -> {p}")
+        import hashlib
+        print(f"pulled {len(rows)} metric rows -> {p} (sha256 {hashlib.sha256(p.read_bytes()).hexdigest()[:16]})")
+        if a.pull_only:
+            print("--pull-only: no questions built. Send this file privately to the set holder.")
+            return
     for r in rows:
         if isinstance(r.get("concept_names"), str):
             r["concept_names"] = r["concept_names"].strip("{}").split(",")
 
+    used = used_keys(a.exclude_gold)
     rng = random.Random(a.seed)
     if a.set == "A":
         frozen = {r["accession_number"].strip() for r in csv.DictReader(open(ROOT / "eval/round1_filings.csv"))
                   if r.get("validation_status", "passed") == "passed"}
-        pool, excl = population(rows, frozen, set(CORE), None)
+        pool, excl = population(rows, frozen, set(CORE), None, used)
         picked = sample_A(pool, rng)
     else:
-        pool, excl = population(rows, None, None, set(CORE))
+        pool, excl = population(rows, None, None, set(CORE), used)
         picked = sample_C(pool, rng)
 
     out = ROOT / a.out
@@ -276,6 +357,8 @@ def main():
     manifest = {"set": a.set, "seed_sha256": hashlib.sha256(str(a.seed).encode()).hexdigest()[:16],
                 "seed_is_default": a.seed == SEED, "git_commit": commit, "rows_pulled": len(rows),
                 "population_after_exclusions": len(pool), "exclusions": dict(excl), "n_questions": len(items),
+                "excluded_question_files": [Path(x).name for x in a.exclude_gold], "n_used_keys": len(used),
+                "by_answer_unit": dict(Counter(it["answer_unit"] for it in items)),
                 "by_company": dict(Counter(it["tickers"][0] for it in items)),
                 "by_statement": dict(Counter(it["strata"]["statement"] for it in items)),
                 "by_relation": dict(Counter(it["strata"]["relation"] for it in items)),

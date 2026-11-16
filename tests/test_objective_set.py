@@ -34,8 +34,13 @@ def test_item_is_gold_format_and_sig_figs():
     it = B.to_item(row(), "OBJ-A-001", {"set": "A"})
     assert it["gold"]["value"] == 82886e6 and it["answer_type"] == "exact_numeric"
     assert it["gold"]["min_sig_figs"] == 5 and it["gold_cell"]["period_months"] == 3
+    # Casey's prints in thousands: ask in USD thousands and require every printed digit (Eval rule d)
     casy = B.to_item(row(ticker="CASY", value=5_678_336_000, display_text="5,678,336"), "x", {})
-    assert casy["gold"]["min_sig_figs"] == 4          # 5,678 million, not the 7 digits printed in thousands
+    assert casy["answer_unit"] == "USD thousands" and casy["question"].endswith("Answer in USD thousands.")
+    assert casy["gold"]["min_sig_figs"] == 7 and casy["answer"]["display"] == "USD 5,678,336 thousand"
+    # trailing zeros of a whole number do not count, the grader's way
+    assert B.to_item(row(value=1_200e6, display_text="1,200"), "z", {})["gold"]["min_sig_figs"] == 2
+    assert B.printed_sig_figs("(0.50)") == 2 and B.printed_scale(row(value=1_200e6, display_text="1,200")) == 1e6
     eps = B.to_item(row(metric_key="eps_diluted", value=4.27, display_text="4.27"), "y", {})
     assert eps["gold"]["min_sig_figs"] == 3 and eps["answer"]["unit"] == "USD/shares"
 
@@ -63,3 +68,16 @@ def test_sample_A_strata_and_determinism():
         assert len(mine) == 15
         assert sum(x[1]["statement"] == "income_statement" for x in mine) == 6
         assert sum(x[1]["relation"] == "current" for x in mine) == 10
+
+
+def test_rule_a_excludes_company_metric_period_used_by_a_question(tmp_path):
+    import json
+    q = {"qid": "D1", "facts": [{"ticker": "MSFT", "concept": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+                                 "period_end": "2026-03-31"}]}
+    f = tmp_path / "dev.jsonl"
+    f.write_text(json.dumps(q) + "\n")
+    used = B.used_keys([str(f)])
+    rows = [row(), row(metric_key="net_income", concept_names=["NetIncomeLoss"]), row(ticker="AAPL")]
+    pool, excl = B.population(rows, None, None, None, used)
+    assert excl["5_used_by_dev_or_holdout"] == 1 and {r["metric_key"] for r in pool} == {"net_income", "revenue"}
+    assert {r["ticker"] for r in pool} == {"MSFT", "AAPL"}
