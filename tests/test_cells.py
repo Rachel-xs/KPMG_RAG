@@ -101,3 +101,27 @@ def test_cite_answer():
     assert b["cell_citations"][0]["cell_key"].endswith("|3m@2026-03-31")
     b = cite_answer({"value": 0.183, "period_end": "2026-03-31"}, [IS], period_months=3, values=[82_886e6, 70_066e6])
     assert [c["value"] for c in b["cell_citations"]] == [82_886e6, 70_066e6]
+
+
+SEG = {"chunk_id": "S-C1-0030", "table_id": "S-t05", "ticker": "MSFT", "form": "10-Q", "accession": "A1",
+       "is_table": True, "table_name": "SUMMARY RESULTS OF OPERATIONS", "text": """SUMMARY RESULTS OF OPERATIONS
+(In millions, except percentages and per share amounts)
+|  | Three Months Ended March 31, 2026 | Three Months Ended March 31, 2025 | Percentage Change |
+| --- | --- | --- | --- |
+| Revenue | $82,886 | $70,066 | 18% |
+| Net income | 31,778 | 25,824 | 23% |
+| Diluted earnings per share | 4.27 | 3.46 | 23% |"""}
+
+
+def test_change_column_takes_current_period():
+    t = parse_table(SEG)
+    assert t.columns[2].change and t.columns[2].period_end == date(2026, 3, 31) and t.columns[2].months == 3
+    h = find_cells([SEG], 18, "2026-03-31", 3, kind="percent")[0]
+    assert h["period_match"] and h["change_column"] and h["cell_key"].endswith("|chg3m@2026-03-31")
+
+
+def test_kind_keeps_amounts_and_percents_apart():
+    t = {**SEG, "text": SEG["text"] + "\n| Other | 1 | 2 | 60% |"}
+    assert not find_cells([t], 0.60, kind="amount")                     # $0.60 must not hit "60%"
+    assert find_cells([t], 0.60, kind="percent")[0]["value_text"] == "60%"
+    assert find_cells([SEG], 4.27, "2026-03-31", 3, kind="amount")[0]["row_label"] == "Diluted earnings per share"
