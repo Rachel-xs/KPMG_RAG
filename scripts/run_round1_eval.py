@@ -194,6 +194,9 @@ def main():
     ap.add_argument("--out", default="eval/results/round1")
     ap.add_argument("--multi", action="store_true",
                     help="also run retrieve_multi (contract v1.2) on multi-target questions and compare")
+    ap.add_argument("--backend", choices=["custom", "chroma"], default="custom",
+                    help="custom = data/round1/index_C1 (exact NumPy + BM25); chroma = the served backend")
+    ap.add_argument("--chroma-dir", default="data/round1/chroma_C1")
     a = ap.parse_args()
 
     gold = [json.loads(l) for l in open(ROOT / a.gold, encoding="utf-8")]
@@ -206,7 +209,11 @@ def main():
                                                    "tickers", "filters", "rag_evidence", "snapshot_status")
                                  if k in q}, ensure_ascii=False) + "\n")
 
-    retr = Retriever(ROOT / a.index, log_dir=None)
+    if a.backend == "chroma":  # the backend the Agent serves from (config.yaml retrieval.backend)
+        from rag.retrieve import make_retriever
+        retr = make_retriever("chroma", ROOT / a.chroma_dir, log_dir=None)
+    else:
+        retr = Retriever(ROOT / a.index, log_dir=None)
     methods = [m for m in a.methods.split(",") if m]
     rows = []
     for q in gold:

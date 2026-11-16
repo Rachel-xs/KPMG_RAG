@@ -171,21 +171,24 @@ class CoverageIndex:
     @classmethod
     def from_chunks(cls, path: str | Path) -> "CoverageIndex":
         """Index chunks.jsonl (custom backend) - one record per accession."""
-        seen: dict[str, Filing] = {}
         with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                if not line.strip():
-                    continue
-                c = json.loads(line)
-                acc = c.get("accession_number") or c.get("accession")
-                if acc in seen:
-                    continue
-                seen[acc] = Filing(c.get("ticker") or "", c.get("company_name") or c.get("company") or "",
-                                   c.get("form") or "", acc,
-                                   _d(c.get("reporting_period_end") or c.get("period_of_report")),
-                                   int(c["fiscal_year"]) if c.get("fiscal_year") else None,
-                                   (c.get("fiscal_period") or None))
-        return cls(list(seen.values()), source=str(path))
+            recs = (json.loads(line) for line in fh if line.strip())
+            return cls.from_records(recs, source=str(path))
+
+    @classmethod
+    def from_records(cls, chunks, source: str = "records") -> "CoverageIndex":
+        """Any iterable of stored chunks, e.g. a live retriever's `.chunks` (custom or Chroma backend)."""
+        seen: dict[str, Filing] = {}
+        for c in chunks:
+            acc = c.get("accession_number") or c.get("accession")
+            if acc in seen:
+                continue
+            seen[acc] = Filing(c.get("ticker") or "", c.get("company_name") or c.get("company") or "",
+                               c.get("form") or "", acc,
+                               _d(c.get("reporting_period_end") or c.get("period_of_report")),
+                               int(c["fiscal_year"]) if c.get("fiscal_year") else None,
+                               (c.get("fiscal_period") or None))
+        return cls(list(seen.values()), source=source)
 
     @classmethod
     def from_csv(cls, path: str | Path, company_names: dict[str, str] | None = None) -> "CoverageIndex":
@@ -400,18 +403,25 @@ _DEFAULT: CoverageIndex | None = None
 
 
 def default_index() -> CoverageIndex:
-    """Manifest from $RAG_COVERAGE_MANIFEST (CSV) or the custom index's chunks ($RAG_INDEX_DIR, then config)."""
+    """Manifest from $RAG_COVERAGE_MANIFEST (CSV); else the custom index's chunks.jsonl ($RAG_INDEX_DIR, then config);
+    else the chunks of the retriever the Agent actually calls (Chroma by default), so the pre-check covers exactly
+    what retrieval can return."""
     global _DEFAULT
     if _DEFAULT is None:
         manifest = os.environ.get("RAG_COVERAGE_MANIFEST")
         if manifest:
             _DEFAULT = CoverageIndex.from_csv(manifest)
-        else:
-            idx = os.environ.get("RAG_INDEX_DIR")
-            if not idx:
-                from .config import load_config
-                idx = load_config()["paths"]["index"]
+            return _DEFAULT
+        idx = os.environ.get("RAG_INDEX_DIR")
+        if not idx and not os.environ.get("RAG_CHROMA_DIR") and os.environ.get("RAG_BACKEND", "").lower() != "chroma":
+            from .config import load_config
+            idx = load_config()["paths"]["index"]
+        if idx and (Path(idx) / "chunks.jsonl").exists():
             _DEFAULT = CoverageIndex.from_chunks(Path(idx) / "chunks.jsonl")
+        else:
+            from .retrieve import _default_retriever
+            r = _default_retriever()
+            _DEFAULT = CoverageIndex.from_records(r.chunks, source=f"{type(r).__name__}:{getattr(r, 'index_dir', '')}")
     return _DEFAULT
 
 
