@@ -9,19 +9,27 @@ RRF 60, top_k 15, `retrieve_multi`, gpt-6.1-terra, prompt v2), tagged `final_v1`
 the holdout run. The 155 Gold v2 questions become the *dev* set: any later tuning (e.g. narrative fixes) is done on
 dev only and reported as such.
 
-## What we ask for (by Thu 11/20)
+## What we ask for
 
-30–40 new questions in the Gold Set v2 JSONL format (same fields as `eval/round1/benchmark_v2_1.jsonl`, including
+About 70 new questions in the Gold Set v2 JSONL format (same fields as `eval/round1/benchmark_v2_1.jsonl`, including
 `filters`, `answer`, `gold.evidence` and `rag_evidence` anchors), written by someone on Eval, **not shown to anyone on
-RAG before the run**.
+RAG before the run**, delivered as **two separate files**:
 
-| Slice | Share | Notes |
+| Batch | Size | Due | Tests | Contents |
+|---|---|---|---|---|
+| **A** | ~40 | Thu 11/20 | `final_v1` (numbers, refusals, pre-check) | ~30 exact numeric, ~5 narrative, ~5 unanswerable |
+| **B** | ~30 | Mon 11/24, kept sealed until RAG freezes `final_v2` (~11/27) | the narrative fixes tuned on dev after 11/16 | ~20 narrative / explanatory, ~5 exact numeric, ~5 unanswerable |
+
+Why these sizes: with 18 numeric questions, 16/18 correct still has a 95% interval of 0.67–0.97, too wide to say
+anything. About 35 numeric questions in total narrows it to roughly 0.75–0.96. Why two batches: RAG keeps tuning
+narrative retrieval on dev after the freeze; a single holdout already used for `final_v1` could not validate those
+changes honestly.
+
+| Slice (both batches) | Share | Notes |
 |---|---|---|
-| Companies | mostly the 9 non-MSFT companies | Gold v2 is 84/127 MSFT; the holdout should not be |
-| Exact numeric | ~45% | income statement, balance sheet, cash flow, segment, per-share |
-| Narrative / explanatory | ~40% | MD&A explanations, risk factors, accounting policies; with required points |
-| Unanswerable | ~5 questions | not disclosed, future period, company not in corpus |
+| Companies | mostly the 9 non-MSFT companies, but ~25% MSFT | Gold v2 is 84/127 MSFT; the MSFT share lets us separate "harder companies" from overfitting |
 | **Stress questions** (overlaps the above) | ~1/3 | see below: mentor asked for "harder questions that could break RAG" |
+| Labels | `stress_type` field on each stress question | so results can be reported stress vs normal |
 
 Stress types (one or two each):
 1. **Misspelled or informal company names**: "Mircon", "Caseys", "Take Two" (your finding: 98% → 19% scope accuracy)
@@ -33,12 +41,14 @@ Stress types (one or two each):
 
 ## How the run works
 
-1. Eval commits the holdout file to the Eval repo **after** RAG confirms the `final_v1` tag exists.
+1. Eval commits batch A to the Eval repo **after** RAG confirms the `final_v1` tag exists.
 2. RAG runs once, unchanged:
-   `python scripts/run_round1_reader.py --preset final_v1 --gold <holdout.jsonl> --out eval/results/holdout`
-   plus `scripts/run_round1_eval.py` for retrieval, and hands the AnswerBlocks to Eval for official scoring.
-3. We report dev and holdout side by side, with 95% confidence intervals, and the cost and latency per question.
+   `python scripts/run_round1_reader.py --preset final_v1 --gold <holdout_A.jsonl> --out eval/results/holdout_A`
+   plus `scripts/run_round1_eval.py` for retrieval and `scripts/run_precheck_replay.py --gold <holdout_A.jsonl>` for the
+   pre-check, and hands the AnswerBlocks to Eval for official scoring.
+3. Batch B is released only after RAG tags `final_v2`; same procedure with `--preset final_v2`.
+4. We report dev and holdout side by side, sliced by company (MSFT / other) and stress vs normal,, with 95% confidence intervals and the cost and latency per question.
    A gap is a finding, not something to tune away: any change made after seeing the holdout is a new preset
    (`final_v2`) and is reported as tuned-after-holdout.
 
-Target: run 11/21–11/24 (before Thanksgiving), results in the 11/26 notes and the final report.
+Target: batch A run 11/21–11/24 (before Thanksgiving); batch B run 11/28–11/29, before the 11/30 code freeze.
