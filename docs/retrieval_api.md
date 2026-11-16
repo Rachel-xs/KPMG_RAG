@@ -415,3 +415,32 @@ misspelled company names resolve 123/124 (exact matching alone: 15/124).
 | RAG `weak` / `empty` | one fallback to GraphRAG / SQL |
 | RAG `ok` but the Agent's evidence check says insufficient | per the Agents' experiment (targeted RAG retry vs direct graph fallback) |
 | still insufficient after one fallback | decline with the reason |
+
+## 20. v1.3 draft (2026-11-16): cell-level citations `rag.cells`
+
+**Status: draft; derived from RAG's own table chunks until Data's table ↔ cell links land.** Additive.
+
+```python
+from rag.cells import parse_table, find_cells, cite_answer
+find_cells(chunks, 82_886e6, period_end="2026-03-31", months=3)   # matching cells, right period first
+cite_answer(answer_block, cited_chunks, period_months=3)          # adds "cell_citations"
+cite_answer(answer_block, cited_chunks, values=[82_886e6, 70_066e6])   # derived answer: cite its inputs
+```
+
+A cell citation carries `cell_key` (`<table_id>|<row path>|<months>m@<period_end>`), `table_id`, `chunk_id`,
+`table_name`, `row_label`, `row_path` (group label + row, e.g. `["Revenue", "Total revenue"]`), `column_header`,
+`period_end`, `period_months` (0 = point in time), `value_text` as printed, `value` in base units, `unit_scale`,
+`accession`, `ticker`, `form`, `source_url` and `period_match` (does the column's period match the one asked).
+
+Parsing: the unit line sets the scale (per-share and % rows are not scaled; with no unit line, thousands / millions
+are tried keeping every displayed digit); periods come from the header, the caption, leading period rows, Data's
+`Columns:` line, or the company's fiscal year end for year-only headers. **A header that Data's export cut
+(e.g. Micron's 10-Q) gets no period at all**: a number is then found but never claimed to be from the right
+period. When Data publishes `(table_id, row key, column key)`, only `make_cell_key()` changes.
+
+Round 1 dev check (`scripts/run_cell_citations.py`, final_v1 answers, Gold period = fact end date ± 7 days and
+the same duration): **directly reported answers 59/61 pinned to the right cell** (EV1-016 is a sentence in MD&A,
+not a table; EV2-019 sits under a cut Micron header); **Gold input figures 129/132**, which covers the 26 computed
+answers (growth rates, ratios, derived Q4), whose own value is not printed anywhere. Parser: 1,632 of 1,668
+table chunks parse; 59% of value cells get a period (the rest are mostly tables with no period axis, e.g.
+segment or exhibit lists).
