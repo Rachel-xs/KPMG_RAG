@@ -114,3 +114,16 @@ def test_langchain_coverage_tool(monkeypatch, idx):
     msg = tool.invoke({"type": "tool_call", "id": "1", "name": tool.name,
                        "args": {"companies": ["Microsoft"], "period_ends": ["2026-09-30"]}})
     assert msg.artifact["status"] == "none" and "no filing" in msg.content.lower()
+
+
+def test_from_records_matches_chunks_file(tmp_path):
+    import json as _j
+    from rag.coverage import CoverageIndex
+    recs = [{"accession": "A1", "ticker": "MSFT", "company": "Microsoft Corporation", "form": "10-Q",
+             "period_of_report": "2026-03-31", "fiscal_year": 2026, "fiscal_period": "Q3"},
+            {"accession_number": "A1", "ticker": "MSFT"}]
+    p = tmp_path / "chunks.jsonl"
+    p.write_text("\n".join(_j.dumps(r) for r in recs))
+    a, b = CoverageIndex.from_chunks(p), CoverageIndex.from_records(recs)
+    assert a.filings == b.filings and len(a.filings) == 1
+    assert b.check(tickers="MSFT", period_ends="2026-03-31")["status"] == "all_hit"

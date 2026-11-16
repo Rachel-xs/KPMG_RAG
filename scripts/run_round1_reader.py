@@ -317,6 +317,9 @@ def main():
                          "sentences covering every reason or component (JSON_SPEC_LONG); number questions unchanged")
     ap.add_argument("--preset", default=None, help="configs/<name>.yaml, e.g. final_v1 (overrides the flags above)")
     ap.add_argument("--out", default="eval/results/round1/reader")
+    ap.add_argument("--backend", choices=["custom", "chroma"], default="custom",
+                    help="custom = data/round1/index_C1 (exact NumPy + BM25); chroma = the served backend")
+    ap.add_argument("--chroma-dir", default="data/round1/chroma_C1")
     a = ap.parse_args()
 
     preset = load_preset(a.preset) if a.preset else None
@@ -341,12 +344,16 @@ def main():
     from_preset = bool(preset) and preset["reader"].get("narrative_long", False) == a.narrative_long
     tag = ("dev_" if (a.narrative_variant or (a.narrative_long and not from_preset) or (a.spec != "v1" and not preset)) else f"{a.preset}_" if a.preset else "") + f"{model}_{a.prompt}_k{a.top_k}" + ("_parent" if a.parent else "") + ("_multi" if a.multi else "") \
         + (f"_narr-{a.narrative_variant.replace('+', '-')}" if a.narrative_variant else "") \
-        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "")
+        + ("_narr-long" if a.narrative_long else "") + (f"_spec{a.spec}" if a.spec != "v1" else "") + ("_chroma" if a.backend == "chroma" else "")
     base = ROOT / a.out
     out = base / tag
     out.mkdir(parents=True, exist_ok=True)
     reader = Reader(model, a.prompt, base / "cache.jsonl", p_in, p_out, a.dry_run)
-    retr = Retriever(ROOT / a.index, log_dir=None)
+    if a.backend == "chroma":  # the backend the Agent serves from (config.yaml retrieval.backend)
+        from rag.retrieve import make_retriever
+        retr = make_retriever("chroma", ROOT / a.chroma_dir, log_dir=None)
+    else:
+        retr = Retriever(ROOT / a.index, log_dir=None)
     narr = None
     if a.narrative_variant:
         from rag.narrative import NarrativeSearch
@@ -441,7 +448,7 @@ def main():
             "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
             "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
         },
-        "preset": a.preset, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long, "spec": a.spec,
+        "preset": a.preset, "backend": a.backend, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long, "spec": a.spec,
     }
 
     with open(out / "per_question.csv", "w", newline="", encoding="utf-8") as fh:
