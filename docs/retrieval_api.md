@@ -444,3 +444,12 @@ not a table; EV2-019 sits under a cut Micron header); **Gold input figures 129/1
 answers (growth rates, ratios, derived Q4), whose own value is not printed anywhere. Parser: 1,632 of 1,668
 table chunks parse; 59% of value cells get a period (the rest are mostly tables with no period axis, e.g.
 segment or exhibit lists).
+
+**Update (2026-11-16, PR #23).** `find_cells(..., kind="amount"|"percent")` keeps dollar amounts and percentages apart
+(an EPS of $0.60 can no longer hit a "60%" cell). Small numbers (EPS, %, ratios) are compared to the cent / 0.005,
+and "% Change" columns take the period of the table's current column (`cell_key` ends `|chg3m@<date>`).
+"Number + reason" questions (`scripts/run_mixed_eval.py`, 21 dev questions whose answers state figures):
+**56/58 figures that appear in a table are pinned to the cell in the right period** (34 more are computed by the
+reader or stated only in prose); the explaining passage is retrieved for 18/20 anchored questions with final_v1
+and 19/20 with the union variant. `scripts/demo_answer.py "<question>"` shows the whole chain for one question:
+pre-check → retrieval → answer → numbers → cells → explaining paragraph.

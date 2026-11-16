@@ -72,11 +72,12 @@ class Column:
     header: str
     period_end: date | None = None
     months: int | None = None  # 0 = balance at a date; 3/6/9/12 = duration
+    change: bool = False       # a "% change" / "change" column: compares the table's current period with the prior one
 
     @property
     def key(self) -> str:
         if self.period_end:
-            return f"{self.months if self.months is not None else '?'}m@{self.period_end.isoformat()}"
+            return ("chg" if self.change else "") + f"{self.months if self.months is not None else '?'}m@{self.period_end.isoformat()}"
         return _slug(self.header) or "col"
 
 
@@ -107,11 +108,12 @@ class TableCells:
                 scale = 1.0 if (pct or per_share) else self.scale
                 col = self.columns[j]
                 yield {"cell_key": make_cell_key(c.get("table_id") or c.get("chunk_id"), path, col),
-                       "table_id": c.get("table_id"), "chunk_id": c.get("chunk_id"), "table_name": c.get("table_name"),
+                       "table_id": c.get("table_id"), "chunk_id": c.get("chunk_id"),
+                       "table_name": c.get("table_name") or self.caption.split("|")[0].strip()[:80] or None,
                        "row_label": label, "row_path": path, "row_index": self.rows.index((path, vals)),
                        "column_header": col.header, "column_index": j,
                        "period_end": col.period_end.isoformat() if col.period_end else None,
-                       "period_months": col.months, "value_text": raw.strip(), "value": v * scale,
+                       "period_months": col.months, "change_column": col.change, "value_text": raw.strip(), "value": v * scale,
                        "unit_scale": scale, "unit_known": self.unit_known, "is_percent": pct, "accession": c.get("accession_number") or c.get("accession"),
                        "ticker": c.get("ticker"), "form": c.get("form"), "source_url": c.get("source_url")}
 
@@ -200,6 +202,11 @@ def parse_table(chunk: dict, fy_end: date | None = None) -> TableCells | None:
         else:
             break
     cols = [Column(h, *_period(h, context, fy_end)) for h in head_cells]
+    # "% Change" / "Change" columns take the period of the first dated column (current vs prior period)
+    first = next((c for c in cols if c.period_end), None)
+    for col in cols:
+        if not col.period_end and first and re.search(r"\bchange\b|%\s*chg|increase|\(decrease\)", col.header, re.I):
+            col.period_end, col.months, col.change = first.period_end, first.months, True
     # a flow statement (income / cash flow) whose header names only dates: the duration is the filing's own period
     labels = " ".join(r[0] for r in body).lower()
     if re.search(r"net sales|revenue|net income|operating income|cash provided|cash used", labels):
@@ -223,13 +230,16 @@ def parse_table(chunk: dict, fy_end: date | None = None) -> TableCells | None:
 
 
 def _close(a: float, b: float, rel: float) -> bool:
-    return abs(a - b) <= max(abs(b) * rel, 0.5)
+    # large base-unit amounts: relative (display rounding); small numbers (EPS, %, ratios): a cent / 0.005 at most
+    return abs(a - b) <= max(abs(b) * rel, 0.5 if abs(b) >= 100 else 0.005)
 
 
 def find_cells(chunks: list[dict], value: float, period_end: str | None = None, months: int | None = None,
-               fy_ends: dict | None = None, rel_tol: float = 0.0005, tolerance_days: int = 7) -> list[dict]:
+               fy_ends: dict | None = None, rel_tol: float = 0.0005, tolerance_days: int = 7,
+               kind: str | None = None) -> list[dict]:
     """Cells in these chunks whose value matches `value` (in base units, e.g. USD), best first: period match, then
-    chunk order. A value written in millions matches to the displayed precision (rel_tol 0.05%)."""
+    chunk order. A value written in millions matches to the displayed precision (rel_tol 0.05%).
+    kind="amount" never matches % cells; kind="percent" only matches % cells (as 18.3 or as a fraction 0.183)."""
     want_end = date.fromisoformat(period_end) if period_end else None
     out = []
     for order, c in enumerate(chunks):
@@ -238,6 +248,8 @@ def find_cells(chunks: list[dict], value: float, period_end: str | None = None, 
             continue
         for cell in t.cells():
             if cell["value"] == 0 and value != 0:
+                continue
+            if (kind == "amount" and cell["is_percent"]) or (kind == "percent" and not cell["is_percent"]):
                 continue
             hit = _close(cell["value"], value, rel_tol) or _close(abs(cell["value"]), abs(value), rel_tol)
             if not hit and cell["is_percent"]:  # 20% vs a fraction 0.2
