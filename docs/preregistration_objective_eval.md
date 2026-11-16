@@ -32,6 +32,15 @@ default seed and the report states so.
 | **B — scale** | same 150 questions | asked against the full index (all passed filings in Data's DB) | 150 (paired with A) |
 | **C — new companies** | full index | companies outside the Round 1 ten | 1 per company, up to 100 companies |
 
+Two more independent sets, written by Eval and already public in kpmg-eval (Week 8/data), added 11/16 before any run:
+| Set | Source | Size | Measures |
+|---|---|---|---|
+| **D — messy wording** | `messy_wording_v1.jsonl` (Eval): typo and casual rewrites of the dev questions, same answers | 427 | robustness to how users write (not generalisation: answers equal dev's) |
+| **E — abstention** | `abstention_suite_v1.jsonl` (Eval) | 56 | declines when it should, answers when it should (twins) |
+D and E are run once on `final_v1`, with the clean question's Gold filters for D (the company still arrives as a filter, as
+in the Agent) and no filters for E unless the item supplies them; scored with Eval's `grade_answer_blocks.py`.
+D's primary comparison is paired against the same questions' clean dev result (McNemar), reported by perturbation type.
+
 Stratification within each company: statement (income 6 / balance sheet 5 / cash flow 4 per 15) and period
 relation (current period of the filing : prior-period comparative ≈ 2 : 1). Sampling is uniform at random
 within a stratum; if a stratum is short, the remainder goes to the largest stratum of the same company.
