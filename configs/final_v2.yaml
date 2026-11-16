@@ -1,9 +1,14 @@
-# final_v2 CANDIDATE (11/16). Same retrieval and index as final_v1; reader output changes only, all chosen on the dev
+# final_v2 CANDIDATE (11/16). Same retrieval and index as final_v1; one reader change, chosen on the dev
 # set from Eval's 11/11 asks and Eval's narrative judge (docs: claude/week10-narrative-judge-1116.md):
 #   - narrative_long: narrative / categorical / false-premise answers may use up to 5 sentences covering every reason
 #     or component (dev judge: 17/30 -> 23/30, 6 better / 0 worse, McNemar p = 0.031, no unsupported claims added)
-#   - spec v2: "answered" is false only when nothing answers; "values" lists each figure of a multi-part answer
-# Not adopted: the "union" retrieval variant (better retrieval, same answer quality).
+# Not adopted (11/16, Eval v2.2 grader + Eval narrative judge on dev):
+#   - spec v2 (answered per Eval's decision policy + "decision" + "values"): NAA 88/94 vs 89/94, categorical 4/12 vs
+#     5/12, one answer with an unsupported claim, and GSv0-MSFT-023 still declined. The first spec v2 ("answered false
+#     only if nothing answers") also turned partial answers into answers and would have blocked the Agent's fallback.
+#     values / decision stay optional fields for the Agents' answer model, documented in the handoff.
+#   - the "union" retrieval variant (better retrieval, same answer quality).
+# Chosen on dev only; evaluation backend Chroma (identical to custom on dev). Holdout batch B tests it once.
 # Becomes frozen only when tagged final_v2 (after the 11/18 blind scoring and a full dev run); holdout batch B tests it once.
 name: final_v2
 frozen_on: null          # set when tagged
@@ -28,7 +33,7 @@ retrieval:
 reader:
   model: gpt-6.1-terra
   prompt: v2                       # period-first prompt (unchanged)
-  spec: v2                         # answered only false when nothing answers; values list
+  spec: v1                         # final_v1's output spec (see the decision note above)
   narrative_long: true             # narrative-type questions: up to 5 sentences
   temperature: 0                   # falls back to the model default if the model rejects it
 
