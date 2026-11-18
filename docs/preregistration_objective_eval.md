@@ -103,6 +103,15 @@ Interpretation thresholds: a difference is called a "drop" only if the 95% inter
   scale, pre-check filters co-primary for A–C, D's primary run without filters, wording of what A–C measure, metric
   count corrected to 15. All made before any question was generated and before any run of D or E.
 
+- 11/17: Chroma determinism. Re-running sets D/E showed 43 of 1,079 reader contexts differing from the first run,
+  almost all in unfiltered searches. Cause: the saved HNSW graph held 3,000 of 3,736 vectors; the other 736 lived
+  only in Chroma's write-ahead log and were re-inserted, multi-threaded, whenever a process opened the index, so the
+  approximate dense top-100 changed between processes (~17% of unfiltered top-100 lists in a 60-query probe; top 15
+  unchanged). Fix, before holdout A: the same ids and vectors (index_version 7a7ad9801f86, no re-embedding) copied
+  into a collection with every vector in the saved graph (`scripts/repersist_chroma.py`); 0 of 60 lists differ
+  across processes. Retrieval settings and the reader are unchanged. D/E were run on the earlier index and are
+  reported as run.
+
 ## What will not be done
 No tuning on A, B or C; no removal of questions after seeing answers (except the pre-stated exclusions, which are
 applied before the run); no re-running with a different seed.
