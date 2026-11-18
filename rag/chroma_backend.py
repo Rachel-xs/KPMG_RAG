@@ -34,6 +34,30 @@ from .text_utils import tokenize
 
 METHODS = ("bm25", "dense", "hybrid")
 DEFAULT_COLLECTION = "sec_filing_chunks"
+# Persist every vector into the saved HNSW graph. With Chroma's defaults (sync_threshold 1000) the last
+# n mod 1000 vectors stay only in the write-ahead log and are re-inserted into the graph, multi-threaded, each time
+# a process opens the collection, so the approximate top-100 changed between runs (11/17 diagnosis: 736 of 3,736
+# vectors; ~17% of unfiltered top-100 lists differed across fresh processes). Fully persisted: 0 of 60 differ.
+HNSW_PERSIST = {"hnsw:sync_threshold": 100, "hnsw:batch_size": 100}
+
+
+def persistence_report(persist_dir: str | Path) -> dict:
+    """How many vectors sit in the saved HNSW graph vs only in Chroma's write-ahead log (read-only)."""
+    import sqlite3
+
+    persist_dir = Path(persist_dir)
+    con = sqlite3.connect(f"file:{persist_dir / 'chroma.sqlite3'}?mode=ro", uri=True)
+    try:
+        n = con.execute("select count(*) from embeddings").fetchone()[0]
+        seq = dict(con.execute(
+            "select s.scope, m.seq_id from max_seq_id m join segments s on s.id = m.segment_id").fetchall())
+        queued = con.execute("select max(seq_id) from embeddings_queue").fetchone()[0] or 0
+    finally:
+        con.close()
+    lengths = list(persist_dir.glob("*/length.bin"))
+    in_graph = lengths[0].stat().st_size // 4 if lengths else 0
+    return {"n_vectors": n, "in_saved_graph": in_graph, "log_max_seq": queued,
+            "vector_segment_seq": seq.get("VECTOR"), "fully_persisted": in_graph == n}
 
 
 def _chromadb():
@@ -144,7 +168,7 @@ def build_chroma_index(
         client.delete_collection(collection_name)
     collection = client.create_collection(
         collection_name,
-        metadata={"hnsw:space": "cosine", "index_version": index_version, "embedder": embedder_spec},
+        metadata={"hnsw:space": "cosine", "index_version": index_version, "embedder": embedder_spec, **HNSW_PERSIST},
     )
     for start in range(0, len(chunks), batch_size):
         end = start + batch_size
