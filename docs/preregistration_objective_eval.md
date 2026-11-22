@@ -115,3 +115,18 @@ Interpretation thresholds: a difference is called a "drop" only if the 95% inter
 ## What will not be done
 No tuning on A, B or C; no removal of questions after seeing answers (except the pre-stated exclusions, which are
 applied before the run); no re-running with a different seed.
+
+## Run log (appended after the runs; nothing above was changed)
+- **Holdout A, 2026-11-21** (Eval's sealed batch, 40 questions). SHA-256 a6cf275c092c...0680 checked against Eval's
+  manifest before the file was opened. Run once:
+  `run_round1_reader.py --preset final_v1 --backend chroma --gold <holdout_A.jsonl>` (filters: default, gold), 40 API
+  calls, none cached. Config `configs/final_v1.yaml` = tag `final_v1` (03a9220); code and index commit **main @ 0685fd4**
+  (Chroma persistence fix, PR #36, made after the 11/16 freeze; retrieval settings and reader unchanged), logged here at
+  Eval's request. Index chroma_C1, index_version 7a7ad9801f86; persistence check passed (3,736 of 3,736 vectors in the
+  saved HNSW graph). Answers returned to Eval the same evening; Eval scores officially. Usage: 254,241 input / 3,748
+  output tokens, $0.27. Pre-registered no-model analyses run after the answers were returned: pre-check replay
+  (0 of 35 answerable blocked) and retrieval evaluation (hybrid, Gold filters, strict evidence recall@10 = 1.00).
+- **Exploratory, not part of this pre-registration** (mentor request 11/19): query rewriting in RAG vs Agent extraction
+  on messy_wording_v1, 2026-11-22. Same final_v1 reader on the fixed index for every arm; scripts
+  `scripts/qr_*.py`; results `eval/results/query_rewrite/`. One arm (Agents' companies + pre-check) was designed after
+  seeing the others and is labelled post-hoc. Reported as exploratory, never as a test of final_v1.
