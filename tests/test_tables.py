@@ -109,3 +109,22 @@ def test_split_repeats_header_and_group_label():
     body = "\n".join(pieces)
     for v in ("82,886", "(623)", "194,370"):
         assert v in body
+
+
+def test_compact_layout_rows_without_trailing_pipe():
+    """Data's later extraction (e.g. MSFT 10-Q FY2025 Q3): rows do not end with "|", header cells wrap with a single
+    newline, rows are separated by blank lines. Each row must stay a row, and the three- vs nine-month headers must
+    land on the right columns (11/24: the old parser glued the whole table into one row)."""
+    from rag.tables import parse_section, render
+    text = ("INCOME STATEMENTS\n\n(In millions, except per share amounts) (Unaudited) | Three Months Ended\nMarch 31, | "
+            "Nine Months Ended\nMarch 31,\n\n2025 | 2024 | 2025 | 2024\n\nRevenue:\n\nProduct | $ | 15,319 | $ | 17,080 | $ | "
+            "46,810 | $ | 51,556\n\nService and other | 54,747 | 44,778 | 158,473 | 128,839\n\nTotal revenue | 70,066 | "
+            "61,858 | 205,283 | 180,395\n\nCost of revenue:\n\nProduct | 3,037 | 4,339 | 10,187 | 13,834\n")
+    tables = [b["table"] for b in parse_section(text) if b["type"] == "table"]
+    assert len(tables) == 1
+    md = render(tables[0])
+    assert "| Total revenue | 70,066 | 61,858 | 205,283 | 180,395 |" in md
+    assert "| Revenue: |" in md
+    header = md.splitlines()[2]
+    assert header.count("Three Months Ended March 31, 2025") == 1 and "Nine Months Ended March 31, 2025" in header
+    assert not any(line.count("---") > 10 for line in md.splitlines())
