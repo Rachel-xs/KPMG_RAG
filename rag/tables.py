@@ -59,7 +59,43 @@ class Table:
 # ---------------------------------------------------------------------------------------------
 # 1. lines -> logical items ("row" with its wrapped continuation lines, or "text")
 # ---------------------------------------------------------------------------------------------
+_LABEL_ROW_MAX = 60  # compact layout: a pipe-less line this short between table rows is a label-only row ("Revenue:")
+
+
+def _compact_layout(text: str) -> bool:
+    """True when the section's table rows are NOT closed with a trailing "|" (Data's later extraction, e.g. MSFT
+    10-Q FY2025: "Total revenue | 70,066 | 61,858"). The round-1 layout closes every row ("... | 82,886 | |"),
+    and logical_items relies on that trailing pipe to end a row; without it a whole table collapsed into one row."""
+    rows = [ln.strip() for ln in text.split("\n") if ln.count("|") >= 2 and not FORM_FOOTER_RE.match(ln.strip())]
+    return len(rows) >= 3 and sum(r.endswith("|") for r in rows) < 0.2 * len(rows)
+
+
+def _logical_items_compact(text: str) -> list[dict]:
+    """Compact layout: rows are separated by blank lines, and a single newline inside a block is a line break
+    inside a cell ("Three Months Ended\nMarch 31,"), so each block is joined into one line first. A block with a
+    "|" is one row; a short pipe-less block between rows is a label-only row ("Revenue:"); anything else is text."""
+    blocks = []
+    for m in re.finditer(r"(?:[^\n]|\n(?![ \t]*\n))+", text):
+        line = re.sub(r"\s*\n\s*", " ", m.group(0)).strip()
+        if line and not FORM_FOOTER_RE.match(line):
+            blocks.append((line, m.start(), m.end()))
+    items = []
+    for k, (line, s, e) in enumerate(blocks):
+        if "|" in line:
+            items.append({"type": "row", "text": line, "start": s, "end": e})
+            continue
+        prev_row = bool(items) and items[-1]["type"] == "row"
+        next_row = k + 1 < len(blocks) and "|" in blocks[k + 1][0]
+        if prev_row and next_row and len(line) <= _LABEL_ROW_MAX and not line.rstrip().endswith("."):
+            items.append({"type": "row", "text": line + " |", "start": s, "end": e})
+        else:
+            items.append({"type": "text", "text": line, "start": s, "end": e})
+    return items
+
+
 def logical_items(text: str) -> list[dict]:
+    if _compact_layout(text):
+        return _logical_items_compact(text)
     items, buf = [], None
     for m in re.finditer(r"[^\n]+", text):
         line, s, e = m.group(0).strip(), m.start(), m.end()
