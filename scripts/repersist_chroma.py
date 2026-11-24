@@ -17,7 +17,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from rag.chroma_backend import DEFAULT_COLLECTION, HNSW_PERSIST, _chromadb, persistence_report  # noqa: E402
+from rag.chroma_backend import DEFAULT_COLLECTION, HNSW_PERSIST, _chromadb, get_all, persistence_report  # noqa: E402
 
 
 def main():
@@ -38,13 +38,13 @@ def main():
     shutil.copytree(src, tmp)
     try:
         s = _chromadb().PersistentClient(path=str(tmp)).get_collection(a.collection)
-        got = s.get(include=["embeddings", "documents", "metadatas"])
+        got = get_all(s, ["embeddings", "documents", "metadatas"])
         meta = {k: v for k, v in (s.metadata or {}).items() if not k.startswith("hnsw:") or k == "hnsw:space"}
         c = _chromadb().PersistentClient(path=str(dst)).create_collection(a.collection, metadata={**meta, **HNSW_PERSIST})
         for i in range(0, len(got["ids"]), 1000):
             c.add(ids=got["ids"][i:i + 1000], embeddings=got["embeddings"][i:i + 1000],
                   documents=got["documents"][i:i + 1000], metadatas=got["metadatas"][i:i + 1000])
-        new = c.get(include=["embeddings"])
+        new = get_all(c, ["embeddings"])
         a = dict(zip(got["ids"], np.asarray(got["embeddings"])))
         b = dict(zip(new["ids"], np.asarray(new["embeddings"])))
         same = a.keys() == b.keys() and all(np.allclose(a[k], b[k], atol=1e-6) for k in a)  # cosine re-normalises: ~3e-8

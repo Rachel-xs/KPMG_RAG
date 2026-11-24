@@ -196,6 +196,26 @@ def build_chroma_index(
     return meta
 
 
+GET_PAGE = 5000  # SQLite caps bound variables (32,766); one collection.get() over ~33k+ chunks fails
+
+
+def get_all(collection, include: list[str], page: int = GET_PAGE) -> dict:
+    """collection.get() in pages; same ids and order as one call, but works past SQLite's variable limit
+    (full-corpus index, 37,957 chunks: "too many SQL variables")."""
+    out = {"ids": []}
+    out.update({k: [] for k in include})
+    offset = 0
+    while True:
+        got = collection.get(include=include, limit=page, offset=offset)
+        out["ids"] += got["ids"]
+        for k in include:
+            vals = got.get(k)
+            out[k] += list(vals) if vals is not None else [None] * len(got["ids"])
+        if len(got["ids"]) < page:
+            return out
+        offset += page
+
+
 class ChromaRetriever:
     """Contract-compatible dense/hybrid retriever backed by persistent Chroma."""
 
@@ -224,7 +244,7 @@ class ChromaRetriever:
             raise RetrievalUnavailableError(
                 f"Chroma collection {collection_name!r} is unavailable in {self.persist_dir}"
             ) from exc
-        got = self.collection.get(include=["documents", "metadatas"])
+        got = get_all(self.collection, ["documents", "metadatas"])
         self.chunks = [
             _stored_chunk(str(cid), doc, metadata or {})
             for cid, doc, metadata in zip(got["ids"], got["documents"], got["metadatas"])
