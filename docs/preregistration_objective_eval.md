@@ -152,3 +152,17 @@ applied before the run); no re-running with a different seed.
   glued into one row by `rag/tables.py` (bd33d40; frozen filings parse unchanged), and `collection.get()` is paged so
   indexes over ~33k chunks load (2216698). Dev retrieval (Gold v2.2, filtered, k=10) equals the frozen index
   (all 0.850, numbers 0.892, prose 0.735); without filters 0.409.
+- **Amendment, 2026-11-24, before any set C (or B) question was generated or seen: index for B and C.** Set C
+  draws from companies outside the Round 1 ten, which the 233-filing index above does not hold, so the full index is
+  extended to every filing in the saved metric pull (`exports/metric_rows.json`, 11/16, sha 7c7bb541...; the pull Eval
+  generates A and C from): the 233 core filings plus the 412 non-core filings of 250 companies, 645 filings in all.
+  **B and C both run on this index: index_version 37c4eb2f1628**, 102,760 chunks, same chunking / embedding /
+  retrieval settings as the frozen index, persistence check 102,760 of 102,760; the 20 frozen filings rebuild
+  identically (3,736 of 3,736 chunk ids and texts). This matches the definition above ("all passed filings in Data's
+  DB" as of the pull) more closely than 3abed1490b13, which stays only as the 10-company package already given to
+  Agents. Version rule as for the core filings: all 412 non-core filings have a passed legacy set (newest taken).
+  Fiscal labels: each company's fiscal-year end is the month-day of its latest 10-K period end in the pull or in
+  `finance.filing` (`eval/fullplus_fye.txt`). Data has no ticker for 8 issuers (11 filings): XOM, CHTR, TEL, LVS, KMI,
+  CMCSA, MCO, GOOGL filled from their CIKs, TEL's fiscal-year end set to 09-26 (`eval/fullplus_ticker_fill.json`);
+  questions about them carry no ticker filter. Freeze list `eval/fullplus_filings.csv`; built with the two code
+  changes on branch `fix/compact-tables` (bd33d40, 2216698).
