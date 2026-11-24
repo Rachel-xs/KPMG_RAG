@@ -130,3 +130,25 @@ applied before the run); no re-running with a different seed.
   on messy_wording_v1, 2026-11-22. Same final_v1 reader on the fixed index for every arm; scripts
   `scripts/qr_*.py`; results `eval/results/query_rewrite/`. One arm (Agents' companies + pre-check) was designed after
   seeing the others and is labelled post-hoc. Reported as exploratory, never as a test of final_v1.
+- **Holdout B, 2026-11-23** (Eval's sealed batch, 30 questions: narrative 18, numeric 6, unanswerable 6). Eval revised
+  the file on 11/23 before anyone outside Eval saw it and published the new hash first (supersedes f6d3782d...).
+  SHA-256 f6326a34...3bea2c54 checked against the message and `Week 9/results/holdout_B_manifest.json` before the file
+  was opened. Disclosure: Eval's Slack message showed a preview of HB-001 (question and answer) before the run; nothing
+  was changed. Run once:
+  `run_round1_reader.py --preset final_v2 --backend chroma --gold <holdout_B.jsonl>` (pre-registered default filters),
+  30 API calls, none cached. Config `configs/final_v2.yaml` = tag `final_v2` (-> 789bf81); code **main @ 69198ee**, which
+  differs from 789bf81 only by the Chroma persistence fix (#36) and the pre-check manifest, as for batch A. Index
+  chroma_C1, index_version 7a7ad9801f86; persistence check passed (3,736 of 3,736). Tracked files clean before and
+  after the run. Usage: 205,211 input / 3,442 output tokens, $0.222; reader median 2.3 s (p95 4.1 s). Answers returned
+  to Eval the same evening; Eval scores officially (narrative by Eval's judge).
+- **Exploratory, not part of this pre-registration**, 2026-11-23 (Eval's request): Eval's Week 8 narrative judge on the
+  narrative rewrites of the pre-check and Agents arms of the query-rewriting study (72 each; `scripts/qr_judge.py`;
+  `claude/qr-narrative-judge-1123.md`). Reported as exploratory.
+- **Full-corpus index for XBRL B/C, built 2026-11-24** (not a model run; recorded because XBRL B/C are pre-registered
+  on it). 233 filings, index_version **3abed1490b13**, 37,957 chunks, same chunking/embedding/retrieval settings as the
+  frozen index; persistence check 37,957 of 37,957. Built from legacy processing sets (231) plus 2 NTAP 10-Q source
+  sets; the 20 frozen filings rebuild identically (3,736 of 3,736 chunk ids and texts). Two code changes were needed
+  before any XBRL B/C question was seen, both on branch `fix/compact-tables`: table rows without a trailing "|" were
+  glued into one row by `rag/tables.py` (bd33d40; frozen filings parse unchanged), and `collection.get()` is paged so
+  indexes over ~33k chunks load (2216698). Dev retrieval (Gold v2.2, filtered, k=10) equals the frozen index
+  (all 0.850, numbers 0.892, prose 0.735); without filters 0.409.
