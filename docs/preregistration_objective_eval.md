@@ -176,3 +176,7 @@ applied before the run); no re-running with a different seed.
   prose 0.735; unfiltered 0.354. With filters the candidate chunks equal the frozen index's; the change is in ranking
   (BM25 statistics are corpus-wide). Scoring is left as frozen. XBRL A still runs on the first machine (main, frozen
   index).
+- **Correction, 2026-11-24, before any XBRL question was generated or seen:** XBRL A also runs on the second machine,
+  so every remaining run is made there; the first machine is kept only as a backup. Checked on the second machine at
+  main @ 1c09764 (which includes PR #37): frozen-index dev retrieval unchanged (hybrid, filtered, k=10: all 0.850,
+  numbers 0.892, prose 0.735), and a 3-question final_v1 reader smoke test on dev (3/3) confirmed the API setup.
