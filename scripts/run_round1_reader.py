@@ -350,6 +350,9 @@ def main():
                          "whole index; precheck = filters from rag.coverage on the question text alone (what a user "
                          "who names no filing gets): none / unresolved -> declined with the pre-check message, "
                          "no retrieval")
+    ap.add_argument("--expect-index-version", default=None,
+                    help="stop before any API call unless the index actually searched has this index_version "
+                         "(e.g. 37c4eb2f1628 for final_v1@full with --chroma-dir data/fullplus/chroma_C1)")
     a = ap.parse_args()
 
     preset = load_preset(a.preset) if a.preset else None
@@ -385,6 +388,12 @@ def main():
         retr = make_retriever("chroma", ROOT / a.chroma_dir, log_dir=None)
     else:
         retr = Retriever(ROOT / a.index, log_dir=None)
+    # record the index that is actually searched (a preset pins a.index, but --backend chroma searches a.chroma_dir)
+    searched = {"dir": a.chroma_dir if a.backend == "chroma" else a.index,
+                "index_version": (getattr(retr, "meta", None) or {}).get("index_version")}
+    print(f"searching {searched['dir']} (index_version {searched['index_version']})")
+    if a.expect_index_version and searched["index_version"] != a.expect_index_version:
+        raise SystemExit(f"expected index_version {a.expect_index_version}, {searched['dir']} has {searched['index_version']}")
     cov = None
     if a.filters == "precheck":
         from rag.coverage import CoverageIndex, extract_request
@@ -492,6 +501,7 @@ def main():
             "end_to_end_ms_p50": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.5),
             "end_to_end_ms_p95": pctl([r["retrieval_ms"] + (r["reader_latency_ms"] or 0) for r in rows], 0.95),
         },
+        "searched_index": searched, "filters_mode": a.filters,
         "preset": a.preset, "backend": a.backend, "narrative_variant": a.narrative_variant, "narrative_long": a.narrative_long, "spec": a.spec,
     }
 
