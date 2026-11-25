@@ -180,3 +180,17 @@ applied before the run); no re-running with a different seed.
   so every remaining run is made there; the first machine is kept only as a backup. Checked on the second machine at
   main @ 1c09764 (which includes PR #37): frozen-index dev retrieval unchanged (hybrid, filtered, k=10: all 0.850,
   numbers 0.892, prose 0.735), and a 3-question final_v1 reader smoke test on dev (3/3) confirmed the API setup.
+- **XBRL set A, 2026-11-25** (second machine, main @ bee59dc, no tracked file modified; frozen index 7a7ad9801f86).
+  Eval built A (150 questions, 15 per company) with `scripts/build_objective_set.py` at 6b7d53b and a private seed;
+  set_A.zip and set_A.jsonl matched `xbrl_set_A_manifest.json` (a7f6bc11…3b99, 18794c0f…20a5) before the file was
+  opened. Each co-primary configuration was run once with `final_v1`, no change between or after:
+  `run_round1_reader.py --preset final_v1 --backend chroma --gold set_A.jsonl --filters gold` (11:20 ET; 150 API calls,
+  $0.946) and `--filters precheck` (11:34 ET; 128 API calls, 22 questions answered directly by the pre-check without
+  retrieval, $0.805). Persistence after both runs 3,736 of 3,736. Answers returned to Eval before any analysis. Scoring
+  rules Eval fixed on 11/25 before any answer existed, accepted by RAG: an answer equal to the gold value counts even if
+  it drops zeros printed after the decimal point; strict XBRL sign is primary, with a secondary score ignoring the sign
+  on the 22 cash-outflow questions (capital expenditures, dividends) printed in parentheses.
+- **Disclosure, 2026-11-25:** a copy of Eval's private XBRL seed (its SHA-256 matches `sha256_of_seed` in the A and C
+  manifests) reached RAG together with the set files. It was not used and is not kept; Eval was told the same day and
+  decides whether set C is rebuilt with a new seed. Set C (100 questions; set_C.zip matches its manifest, 03288850…f86e)
+  is held unopened until Eval replies.
