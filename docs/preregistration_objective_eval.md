@@ -166,3 +166,13 @@ applied before the run); no re-running with a different seed.
   CMCSA, MCO, GOOGL filled from their CIKs, TEL's fiscal-year end set to 09-26 (`eval/fullplus_ticker_fill.json`);
   questions about them carry no ticker filter. Freeze list `eval/fullplus_filings.csv`; built with the two code
   changes on branch `fix/compact-tables` (bd33d40, 2216698).
+- **Second machine, 2026-11-24** (not a model run; recorded because XBRL B/C will run there). The first Mac could not
+  hold the 645-filing index in memory (the dev retrieval run stalled in swap), so dev retrieval and XBRL B/C move to a
+  second Mac (Apple M5, 48 GB; Miniforge, Python 3.13; requirements.txt installed fresh, so chromadb 1.5.9,
+  sentence-transformers 6.3.0, torch 2.15.0). The repository folder, both indexes and .env were copied, not rebuilt.
+  Checks there: persistence 3,736 of 3,736 (7a7ad9801f86) and 102,760 of 102,760 (37c4eb2f1628); tests/test_tables.py
+  7 passed; frozen-index dev retrieval (Gold v2.2, hybrid, filtered, k=10) reproduces the first machine exactly
+  (all 0.850, numbers 0.892, prose 0.735). Dev retrieval on 37c4eb2f1628, same settings: all 0.835, numbers 0.871,
+  prose 0.735; unfiltered 0.354. With filters the candidate chunks equal the frozen index's; the change is in ranking
+  (BM25 statistics are corpus-wide). Scoring is left as frozen. XBRL A still runs on the first machine (main, frozen
+  index).
