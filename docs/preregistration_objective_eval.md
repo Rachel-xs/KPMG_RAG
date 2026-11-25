@@ -194,3 +194,10 @@ applied before the run); no re-running with a different seed.
   manifests) reached RAG together with the set files. It was not used and is not kept; Eval was told the same day and
   decides whether set C is rebuilt with a new seed. Set C (100 questions; set_C.zip matches its manifest, 03288850…f86e)
   is held unopened until Eval replies.
+- **XBRL set B, 2026-11-25** (second machine, main @ 71b476a; B = set A's 150 questions on index_full 37c4eb2f1628,
+  `final_v1@full`). 71b476a changes only bookkeeping in `run_round1_reader.py`: it records the index actually searched
+  (`searched_index` in summary.json; the preset's `index` field keeps showing the frozen path) and stops before any API
+  call if `--expect-index-version` differs. Persistence 102,760 of 102,760 before and after. Each co-primary
+  configuration run once: `run_round1_reader.py --preset final_v1 --backend chroma --chroma-dir data/fullplus/chroma_C1
+  --expect-index-version 37c4eb2f1628 --gold set_A.jsonl --filters gold` (11:57 ET; 150 API calls, $0.942) and
+  `--filters precheck` (12:07 ET; 150 API calls, $0.910). Answers returned to Eval before any analysis.
