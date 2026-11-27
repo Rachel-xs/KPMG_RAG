@@ -142,10 +142,19 @@ def sig_figs(display: str | None) -> int:
     return max(2, len(digits.lstrip("0")) or 3)
 
 
+ATTRIBUTABLE = {"net_income", "shareholders_equity"}  # lines a statement may print twice: consolidated and attributable
+
+
 def question_text(r: dict) -> str:
     who = company_name(r["ticker"], r.get("company_name"))
+    tail = f"{period_phrase(r)}? Answer in {answer_unit(r)[0]}."
+    # Eval 11/27: when the gold cell is the "attributable to <company>" line, say so; "net income" alone also fits the
+    # consolidated line printed above it (all 7 wrong values on sets B and C2 were that line). Sets A-C2 were built at
+    # 6b7d53b, before this wording, and rebuild unchanged from that commit.
+    if r["metric_key"] in ATTRIBUTABLE and "attributable" in (r.get("row_heading") or "").lower():
+        return f"What was {LABEL[r['metric_key']]} attributable to {who} {tail}"
     poss = who if who.endswith("'s") else who + ("'" if who.endswith("s") else "'s")
-    return f"What was {poss} {LABEL[r['metric_key']]} {period_phrase(r)}? Answer in {answer_unit(r)[0]}."
+    return f"What was {poss} {LABEL[r['metric_key']]} {tail}"
 
 
 def to_item(r: dict, qid: str, stratum: dict) -> dict:
