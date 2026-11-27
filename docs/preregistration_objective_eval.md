@@ -210,3 +210,9 @@ applied before the run); no re-running with a different seed.
   chunks under section `unknown` because Data's section split failed for them (list sent to Data on 11/25). Text and
   tables are indexed and the ticker and accession filters work, so retrieval is unaffected; only section labels are
   missing. Nothing is changed for C2 because of it.
+- **XBRL set C2, 2026-11-27** (second machine, main @ 5fbc9a0; index_full 37c4eb2f1628, `final_v1@full`). set_C2.zip and
+  set_C2.jsonl matched the C2 manifest before opening. Persistence 102,760 of 102,760 before and after. Each co-primary
+  configuration run once: `run_round1_reader.py --preset final_v1 --backend chroma --chroma-dir data/fullplus/chroma_C1
+  --expect-index-version 37c4eb2f1628 --gold set_C2.jsonl --filters gold` (01:52 ET; 100 API calls, $0.595) and
+  `--filters precheck` (02:02 ET; 99 API calls, 1 question answered directly by the pre-check, $0.600). Answers returned
+  to Eval before any analysis.
