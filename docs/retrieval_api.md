@@ -1,6 +1,6 @@
 # Retrieval API Contract v1
 
-**Status:** v1, 2026-10-29. Additive over v0 (signed off 2026-10-08): every v0 field, filter and error is unchanged, so v0 consumers keep working without edits. §16 lists what v1 adds.
+**Status:** v1, 2026-10-29. Additive over v0 (signed off 2026-10-08): every v0 field, filter and error is unchanged, so v0 consumers keep working without edits. §16 lists what v1 adds. **Current agreed version: v1.3 (2026-11-27)**; §17–§21 list each additive step, and §21 holds the pre-check statuses, routing, evidence rules, defaults and indexes that Agents build on.
 **Owner:** RAG team
 **Enforced by:** `rag/contract.py` (schema and validation) and `tests/test_contract.py`. The conformance tests run against both the real retriever and the Agent mock.
 **Consumers:** Agent, Evaluation, UI, Data Engineering.
@@ -28,7 +28,7 @@ def retrieve(
 |---|---|---|---|---|
 | `query` | `str` | yes | — | Non-empty after stripping whitespace. The Agent may pass a rewritten query. |
 | `filters` | `dict \| None` | no | `None` | Metadata filters, applied **before** ranking (§3). |
-| `top_k` | `int` | no | `10` | `1 ≤ top_k ≤ 50`. `bool` is rejected. The Agent uses 8 (Gold v1 knee). |
+| `top_k` | `int` | no | `10` | `1 ≤ top_k ≤ 50`. `bool` is rejected. The frozen systems and the Agent read 15 (§21.C). |
 | `trace_id` | `str \| None` | no | `None` | **v1.** The caller's trace / correlation ID (e.g. the LangGraph run ID). Non-empty, at most 128 characters, otherwise `ValueError`. Echoed in `metadata.trace_id` and in `logs/retrieval.jsonl`. |
 
 `retrieve()` **does**: locate evidence, rank chunks, and return the exact chunk text with provenance.
@@ -36,7 +36,7 @@ def retrieve(
 
 The ranking method is fixed by the RAG team. It is currently `hybrid`: BM25 plus dense retrieval, combined with Reciprocal Rank Fusion (RRF) using k=60. Method is not a parameter of the public tool. The Evaluation team compares methods through the internal `Retriever.search(..., method=...)` (§10).
 
-Index location: `$RAG_INDEX_DIR` if set, otherwise `paths.index` in `config.yaml`.
+Index location: with `RAG_BACKEND=chroma`, `$RAG_CHROMA_DIR` (the Chroma store, e.g. `data/round1/chroma_C1`); `$RAG_INDEX_DIR` only for the custom baseline. Leave `RAG_INDEX_DIR` and `RAG_COVERAGE_MANIFEST` unset when serving Chroma, so the pre-check reads the same index (§21.D).
 
 ---
 
@@ -366,7 +366,7 @@ evidence_status, weak_reasons, warnings, trace_id, top_k_each}`.
 compare companies or combine a 10-K with a 10-Q. For a derived Q4, filters such as
 `{"ticker": "MSFT", "fiscal_year": 2026, "fiscal_period": ["FY", "Q3"]}` give one 10-K and one 10-Q sub-search.
 
-## 19. v1.3 draft (2026-11-16): deterministic pre-check `check_coverage`
+## 19. v1.3 draft (2026-11-16): deterministic pre-check `check_coverage` (settled in §21; its fallback table is replaced by §21.A.3)
 
 **Status: draft for RAG / GraphRAG / Data / Agents to agree on (mentor 11/12).** Additive; nothing above changes.
 
@@ -453,3 +453,122 @@ and "% Change" columns take the period of the table's current column (`cell_key`
 reader or stated only in prose); the explaining passage is retrieved for 18/20 anchored questions with final_v1
 and 19/20 with the union variant. `scripts/demo_answer.py "<question>"` shows the whole chain for one question:
 pre-check → retrieval → answer → numbers → cells → explaining paragraph.
+
+## 21. v1.3 (2026-11-27): pre-check statuses, routing, evidence rules, defaults and indexes
+
+**Status: agreed by RAG and Agents on 11/27** (Agents: "aligned with §§A–D"), GraphRAG's coverage included. v1.3 is
+**additive**: no field, filter, return type or error of v1–v1.2 changes. It settles the §19 draft (pre-check) and records
+what RAG and Agents checked together on Agents' PR #16. §20 (cell citations) stays a draft until Data's cell IDs land.
+
+### 21.A Pre-check (`check_coverage`)
+
+**"Not in the corpus" always means RAG's corpus**, that is, the index RAG is running on (§21.D). It does not mean the
+company is unknown to the system.
+
+| `status` | Meaning | Agent action |
+|---|---|---|
+| `all_hit` | Every company and period asked about has a filing in RAG's corpus | Retrieve with `filters = {"ticker": ..., "accession_number": pc["filters"]["accession_number"]}` |
+| `partial` | Some targets hit, some miss | Retrieve the hits only, and pass `pc["message"]` to the answer step so the answer says what is missing |
+| `none` | The company is in RAG's corpus, but not the filing or period asked about | §21.A.3: another backend if it covers it, otherwise a direct reply listing `available` |
+| `unresolved` | No named company is in RAG's corpus | §21.A.3: another backend if it covers it, otherwise a direct reply |
+| `no_target` | The question names no company | Ask which company, or retrieve without filters if the question is about the whole corpus |
+
+**21.A.2 Call pattern.** The LLM names the companies, the rules read the periods, and the pre-check maps both to
+filings. Do not pass an LLM-filled `fiscal_period` as a filter: on the messy-wording set, 21 of them were wrong
+(for example, "first six months" filled in as Q2).
+
+```python
+pc = check_coverage(tickers=llm_tickers or None,
+                    companies=None if llm_tickers else rules["companies"],
+                    period_ends=rules["period_ends"], fiscal_years=rules["fiscal_years"],
+                    fiscal_periods=rules["fiscal_periods"], forms=rules["forms"],
+                    combine="independent")
+```
+
+**21.A.3 Routing** (replaces the §19 table):
+
+| Situation | Action |
+|---|---|
+| Pre-check `none` / `unresolved`, and GraphRAG (graph or structured) covers the company | Route to GraphRAG. This is the one fallback |
+| Pre-check `none` / `unresolved`, and no backend covers it | Direct reply: not in the database, plus RAG's `available` list; no retrieval call |
+| `partial` | Retrieve only the hits; say what is missing |
+| Ranking / filtering / time-series question | A deterministic tool (structured search); until that exists, a safe abstention |
+| RAG `ok` | Answer |
+| RAG `weak` / `empty` | One fallback to Graph or Structured |
+| Still insufficient after one fallback | Decline with the reason |
+
+Coverage as of 11/27. RAG covers the 10 core companies (AAPL, CASY, MCK, MDT, MSFT, MU, NKE, NTAP, PH, TTWO). GraphRAG
+covers 16 companies ([`extraction_pipeline/config/filings.yaml`](https://github.com/ZiyiClaudiaWang/KPMG-GraphRAG/blob/main/extraction_pipeline/config/filings.yaml)).
+For the 10 core companies, GraphRAG's filings are exactly the 233 filings of RAG's demo index (every accession
+matches), so both backends answer from the same filings.
+
+| Ticker | GraphRAG | Route |
+|---|---|---|
+| GOOGL, WMT, WDC | 20 filings each, FY2021–2026 | GraphRAG |
+| AMZN | 20 filings listed, not yet in the Neo4j graph | GraphRAG when loaded; until then a known coverage limitation |
+| CAH, INTC | `on_hold`: Data is fixing the section split | Neither backend: direct "not available yet" reply |
+
+Route on the ticker the Agent's query understanding returns, not on RAG's name matching. In `rule_based` mode the
+Agent matches these names (case-insensitive, allowing typos): GOOGL Alphabet, Google; AMZN Amazon, Amazon.com;
+WMT Walmart, Wal-Mart; INTC Intel; CAH Cardinal Health (never a bare "Cardinal", which RAG's matcher resolves to
+Carnival); WDC Western Digital.
+
+**21.A.4 Known limits.**
+- Period words with typos ("fiscla", "monhts") are not read, so the pre-check keeps all of that company's filings.
+- A question asking two things at once is not split into sub-searches (holdout HB-016).
+- On the 645-filing index, 11 of 24 common company names did not resolve (for example "Amazon" and "Meta"), and
+  "Lowe's" matched Loews. A larger corpus needs an alias table. The 10 core companies are not affected.
+
+### 21.B Evidence and citations (checked on PR #16, 11/25 and 11/26)
+
+| Rule | Detail |
+|---|---|
+| B.1 `text` is verbatim | Evidence `text` is the chunk text exactly as retrieved; its SHA-256 equals that of the same `chunk_id` in the index. Checked for all 150 evidence rows of Agents' 11/26 traces |
+| B.2 Derived values go in `derived_context` | Extracted values, inferred periods and simplified LLM context. Never written back into `text` |
+| B.3 `derived_context.answer_text` is not a quote | It may be a generated sentence; citations shown to users always quote `text` |
+| B.4 Every extracted figure is printed in its chunk | `as_reported` and `comparative_as_reported` must appear verbatim in that chunk's `text`, otherwise the figure is dropped |
+| B.5 Inferred periods name their source | A period taken from another chunk (a table whose header row was cut off) carries `caption_chunk_id` |
+| B.6 Calculations go through a tool | A deterministic calculator takes the B.4 inputs, and the answer cites the input chunks. In place since 11/26: case 12 = (82,886 − 70,066) / 70,066 = 18.3% |
+| B.7 What a citation shows | `company_name, form, reporting_period_end, section, source_url`, plus `chunk_id` and `accession_number` |
+
+### 21.C Defaults and which call to use
+
+| Item | v1.3 |
+|---|---|
+| `top_k` | 15 for the reader context, as in `final_v1` / `final_v2` (on holdout B, the evidence for 3 questions sat at ranks 11–15). Replaces the "Agent uses 8" note in §1 |
+| One company, one filing | `retrieve_with_status()` |
+| Several companies, or a 10-K with a 10-Q | `retrieve_multi()`, one sub-search per target |
+| No period in the question | Prefer the latest filing, or show the filing date with each cited figure (Full233 otherwise returns several years) |
+| `evidence_status` | `ok` / `weak` / `empty` as in v1.1; never a score threshold |
+
+### 21.D Indexes and deployment
+
+| Index | `index_version` | Contents | Used for |
+|---|---|---|---|
+| Frozen | `7a7ad9801f86` | 20 filings, 10 companies, 3,736 chunks | Every official score (dev, holdout A/B, XBRL A); the joint checklist |
+| Full, 10 companies | `3abed1490b13` | 233 filings, FY2021–2027, 37,957 chunks | The demo |
+| Full plus | `37c4eb2f1628` | 645 filings, 261 companies, 102,760 chunks | XBRL B/C and the scale analysis only; not for the demo |
+
+```
+RAG_BACKEND=chroma
+RAG_CHROMA_DIR=<absolute path>/chroma_C1      # the one index to retrieve from
+# leave RAG_INDEX_DIR and RAG_COVERAGE_MANIFEST unset: the pre-check then reads the retriever's own chunks
+```
+
+- The pre-check and retrieval must use the same index. With only `RAG_CHROMA_DIR` set, `rag.coverage.default_index()`
+  reads the chunks of the retriever the Agent calls. Agents confirmed on 11/27 that their Full233 demo runs this way.
+- Indexes over about 33,000 chunks need the paged Chroma read (PR #37, main `6a7b001` or later).
+- Before a run, `python scripts/repersist_chroma.py <chroma_dir> --check` must report every vector persisted.
+- Every trace carries `index_version` and `backend`.
+- Index packages are shared privately, never through Git. For evaluation, use `round1_frozen_7a7ad9801f86_full.zip`
+  (`index_C1` + `chroma_C1`); the older `chroma_C1`-only package is enough for serving.
+
+### 21.E Sign-off (11/27)
+
+| Item | Status |
+|---|---|
+| Demo index and environment (§21.D) | Agents confirmed: `3abed1490b13`, with `RAG_INDEX_DIR` and `RAG_COVERAGE_MANIFEST` unset |
+| Routing (§21.A.3) | Agents implemented: CAH/INTC get a direct reply; GOOGL, AMZN, WMT, WDC go to GraphRAG |
+| Calculator (§21.B.6) | Agents implemented; cases 4 and 12 checked by RAG |
+| Evidence and citations (§21.B) | RAG checked Agents' PR #16 traces (all 150 evidence rows verbatim, citation fields complete) |
+| LLM-mode query understanding and answers | **Deferred.** All joint tests so far ran in `rule_based` mode; Agents will rerun cases 2, 4, 5 and 8 in LLM mode once their runtime is configured |
