@@ -9,6 +9,7 @@ Retrieval over SEC 10-K and 10-Q filings for the KPMG practicum. The repo builds
 | Interface | [`docs/retrieval_api.md`](docs/retrieval_api.md) (contract v1–v1.2; v1.3 draft in review) |
 | Pre-registered evaluation | [`docs/preregistration_objective_eval.md`](docs/preregistration_objective_eval.md), including the run record of every independent test |
 | Data contract | [`docs/data_rag_schema_lock_v1.md`](docs/data_rag_schema_lock_v1.md) |
+| Handoff | [`docs/HANDOFF.md`](docs/HANDOFF.md): what is handed over, index packages, what may be shared, test results, open items |
 
 ## Quick start: reproduce the frozen system on a new Mac
 
