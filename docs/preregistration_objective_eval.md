@@ -201,3 +201,12 @@ applied before the run); no re-running with a different seed.
   configuration run once: `run_round1_reader.py --preset final_v1 --backend chroma --chroma-dir data/fullplus/chroma_C1
   --expect-index-version 37c4eb2f1628 --gold set_A.jsonl --filters gold` (11:57 ET; 150 API calls, $0.942) and
   `--filters precheck` (12:07 ET; 150 API calls, $0.910). Answers returned to Eval before any analysis.
+- **Set C replaced by C2, and a known data issue, recorded 2026-11-27 before set_C2.jsonl was opened.** Eval retired
+  the first Set C (53664be8…) after its seed reached RAG on 11/25, and drew C2 (100 questions, one per company outside
+  the core 10; set_C2.zip 17ddd30e…, set_C2.jsonl 756e26b7…, `xbrl_set_C2_manifest.json`) with a new seed. That seed
+  also reached RAG with the file; RAG disclosed it on 11/26 and did not use it, and on 11/26 Eval confirmed that C2 runs
+  as is (RAG holds the questions anyway; the system is frozen since 11/17; index_full was recorded on 11/24, before the
+  draw). Known before the run: in index_full, 10 filings from six companies (CAH, CL, ILMN, INTC, JPM, USB) have most
+  chunks under section `unknown` because Data's section split failed for them (list sent to Data on 11/25). Text and
+  tables are indexed and the ticker and accession filters work, so retrieval is unaffected; only section labels are
+  missing. Nothing is changed for C2 because of it.
