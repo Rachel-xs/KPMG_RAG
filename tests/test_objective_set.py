@@ -81,3 +81,15 @@ def test_rule_a_excludes_company_metric_period_used_by_a_question(tmp_path):
     pool, excl = B.population(rows, None, None, None, used)
     assert excl["5_used_by_dev_or_holdout"] == 1 and {r["metric_key"] for r in pool} == {"net_income", "revenue"}
     assert {r["ticker"] for r in pool} == {"MSFT", "AAPL"}
+
+def test_attributable_line_is_named_in_the_question():
+    q = B.question_text(row(ticker="MDT", company_name="MEDTRONIC PLC", metric_key="net_income", duration_days=364,
+                            period_start="2025-04-26", period_end="2026-04-24",
+                            row_heading="Net income attributable to Medtronic"))
+    assert q.startswith("What was net income attributable to Medtronic for the fiscal year ended")
+    q = B.question_text(row(metric_key="shareholders_equity", period_kind="instant", period_start=None,
+                            row_heading="Total stockholders' equity attributable to Microsoft"))
+    assert q.startswith("What was total shareholders' equity attributable to Microsoft as of March 31, 2026?")
+    # unchanged when the gold line is not the attributable one, and for other metrics
+    assert B.question_text(row(metric_key="net_income", row_heading="Net income")).startswith("What was Microsoft's net income ")
+    assert B.question_text(row(row_heading="Revenue attributable to X")).startswith("What was Microsoft's total revenue ")
