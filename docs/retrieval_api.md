@@ -489,7 +489,7 @@ pc = check_coverage(tickers=llm_tickers or None,
 
 | Situation | Action |
 |---|---|
-| Pre-check `none` / `unresolved`, and GraphRAG (graph or structured) covers the company | Route to GraphRAG. This is the one fallback |
+| Pre-check `none` / `unresolved`, and a GraphRAG arm (graph or structured) covers the company and period, per that arm's `describe_corpus()` | Route to that arm. This is the one fallback |
 | Pre-check `none` / `unresolved`, and no backend covers it | Direct reply: not in the database, plus RAG's `available` list; no retrieval call |
 | `partial` | Retrieve only the hits; say what is missing |
 | Ranking / filtering / time-series question | A deterministic tool (structured search); until that exists, a safe abstention |
@@ -497,14 +497,20 @@ pc = check_coverage(tickers=llm_tickers or None,
 | RAG `weak` / `empty` | One fallback to Graph or Structured |
 | Still insufficient after one fallback | Decline with the reason |
 
-Coverage as of 11/27. RAG covers the 10 core companies (AAPL, CASY, MCK, MDT, MSFT, MU, NKE, NTAP, PH, TTWO). GraphRAG
-covers 16 companies ([`extraction_pipeline/config/filings.yaml`](https://github.com/ZiyiClaudiaWang/KPMG-GraphRAG/blob/main/extraction_pipeline/config/filings.yaml)).
-For the 10 core companies, GraphRAG's filings are exactly the 233 filings of RAG's demo index (every accession
-matches), so both backends answer from the same filings.
+Coverage as of 11/28. RAG covers the 10 core companies (AAPL, CASY, MCK, MDT, MSFT, MU, NKE, NTAP, PH, TTWO).
+GraphRAG's pipeline configuration lists 16 companies
+([`extraction_pipeline/config/filings.yaml`](https://github.com/ZiyiClaudiaWang/KPMG-GraphRAG/blob/main/extraction_pipeline/config/filings.yaml)).
+For the 10 core companies, that configuration lists exactly the 233 filings of RAG's demo index (every accession
+matches). This is the target configuration, not what is deployed: on 11/28 the Neo4j graph still held 20 filings,
+and the Structured arm is being expanded separately.
 
-| Ticker | GraphRAG | Route |
+**GraphRAG's actual coverage is checked per arm with `describe_corpus()`**, not assumed from the configuration or
+from RAG's index. The Graph and Structured arms may cover different filings. Route to an arm only for the companies
+and periods its `describe_corpus()` reports; otherwise treat that arm as not covering the question.
+
+| Ticker | In GraphRAG's configuration | Route |
 |---|---|---|
-| GOOGL, WMT, WDC | 20 filings each, FY2021–2026 | GraphRAG |
+| GOOGL, WMT, WDC | 20 filings each, FY2021–2026 | GraphRAG, for the arm(s) whose `describe_corpus()` lists them |
 | AMZN | 20 filings listed, not yet in the Neo4j graph | GraphRAG when loaded; until then a known coverage limitation |
 | CAH, INTC | `on_hold`: Data is fixing the section split | Neither backend: direct "not available yet" reply |
 
@@ -569,6 +575,7 @@ RAG_CHROMA_DIR=<absolute path>/chroma_C1      # the one index to retrieve from
 |---|---|
 | Demo index and environment (§21.D) | Agents confirmed: `3abed1490b13`, with `RAG_INDEX_DIR` and `RAG_COVERAGE_MANIFEST` unset |
 | Routing (§21.A.3) | Agents implemented: CAH/INTC get a direct reply; GOOGL, AMZN, WMT, WDC go to GraphRAG |
+| GraphRAG coverage (§21.A.3) | Clarified 11/28 at Agents' request: the 233-filing match is GraphRAG's configuration; deployed coverage is checked per arm with `describe_corpus()` |
 | Calculator (§21.B.6) | Agents implemented; cases 4 and 12 checked by RAG |
 | Evidence and citations (§21.B) | RAG checked Agents' PR #16 traces (all 150 evidence rows verbatim, citation fields complete) |
 | LLM-mode query understanding and answers | **Deferred.** All joint tests so far ran in `rule_based` mode; Agents will rerun cases 2, 4, 5 and 8 in LLM mode once their runtime is configured |
