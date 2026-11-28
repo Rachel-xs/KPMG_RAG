@@ -31,7 +31,7 @@ answer step: quotes chunk `text` verbatim; figures computed by a deterministic c
 
 - **Data Engineering** owns the database (AWS RDS, PostgreSQL) of filings, sections, chunks and XBRL facts. RAG exports from it read-only and builds its own chunks and indexes.
 - **Agents** call RAG through `rag.retrieve` / `rag.coverage` (contract §21). Their repository: `yz5405/kpmg-agentic-backbone`.
-- **GraphRAG** covers 16 companies: RAG's 10, plus GOOGL, AMZN, WMT and WDC, plus CAH and INTC (on hold). For the 10 core companies it uses the same 233 filings as RAG's demo index. Their repository: `ZiyiClaudiaWang/KPMG-GraphRAG`.
+- **GraphRAG** covers 16 companies: RAG's 10, plus GOOGL, AMZN, WMT and WDC, plus CAH and INTC (on hold). For the 10 core companies its configuration lists the same 233 filings as RAG's demo index; what each GraphRAG arm (Graph, Structured) has actually loaded is checked with its `describe_corpus()` (on 11/28 the Neo4j graph held 20 filings). Their repository: `ZiyiClaudiaWang/KPMG-GraphRAG`.
 - **Evaluation** writes and seals the question sets, scores every run, and keeps the seeds. Their repository: `thomassong0604-oss/kpmg-eval`.
 
 ## 3. Index packages
