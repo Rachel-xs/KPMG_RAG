@@ -238,6 +238,18 @@ def apply_preset(a, p: dict) -> None:
         raise SystemExit(f"preset {p['name']} expects index_version {want}, {a.index} has {meta['index_version']}")
 
 
+def searched_index(retr, backend: str, chroma_dir, index) -> dict:
+    """The index a run actually searches: a preset pins `index`, but --backend chroma searches `chroma_dir`."""
+    return {"dir": chroma_dir if backend == "chroma" else index,
+            "index_version": (getattr(retr, "meta", None) or {}).get("index_version")}
+
+
+def check_expected_index(searched: dict, expect: str | None) -> None:
+    """--expect-index-version guard: stop before any API call if the searched index is not the expected one."""
+    if expect and searched["index_version"] != expect:
+        raise SystemExit(f"expected index_version {expect}, {searched['dir']} has {searched['index_version']}")
+
+
 def pctl(xs: list, q: float):
     xs = sorted(x for x in xs if x is not None)
     if not xs:
@@ -389,11 +401,9 @@ def main():
     else:
         retr = Retriever(ROOT / a.index, log_dir=None)
     # record the index that is actually searched (a preset pins a.index, but --backend chroma searches a.chroma_dir)
-    searched = {"dir": a.chroma_dir if a.backend == "chroma" else a.index,
-                "index_version": (getattr(retr, "meta", None) or {}).get("index_version")}
+    searched = searched_index(retr, a.backend, a.chroma_dir, a.index)
     print(f"searching {searched['dir']} (index_version {searched['index_version']})")
-    if a.expect_index_version and searched["index_version"] != a.expect_index_version:
-        raise SystemExit(f"expected index_version {a.expect_index_version}, {searched['dir']} has {searched['index_version']}")
+    check_expected_index(searched, a.expect_index_version)
     cov = None
     if a.filters == "precheck":
         from rag.coverage import CoverageIndex, extract_request
